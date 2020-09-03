@@ -10,6 +10,12 @@ run-tests: run-papiea
 	docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/typescript && npm test'
 .PHONY: run-tests
 
+run-python-tests: run-papiea
+	cd ./papiea-engine; \
+	docker-compose exec papiea-engine yarn run test; \
+	docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/python/tests && python3.8 -m pytest -s'
+.PHONY: run-tests
+
 run-benchmark: build_main
 	cd ./papiea-engine/__benchmarks__; \
 	yarn run bench -- $(ARGS)
