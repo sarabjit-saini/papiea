@@ -16,7 +16,7 @@ run-python-tests: run-papiea
 	docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/python/tests && \
 	python3.8 -m pip install -r requirements.txt && \
 	python3.8 -m pytest -s'
-.PHONY: run-tests
+.PHONY: run-python-tests
 
 run-benchmark: build_main
 	cd ./papiea-engine/__benchmarks__; \
