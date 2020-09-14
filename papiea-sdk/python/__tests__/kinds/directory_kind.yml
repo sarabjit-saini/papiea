@@ -1,0 +1,28 @@
+directory:
+    type: object
+    title: Directory
+    description: File-System Directory
+    x-papiea-entity: basic
+    required:
+        - uid
+        - abs_path
+    properties:
+        uid:
+            type: string
+            description: Unique identifier for the directory
+            x-papiea: status-only
+        abs_path:
+            type: string
+            description: Absolute path for the directory
+        subdirectory_references:
+            type: array
+            description: Reference UID for the sub-directories
+            items:
+                type: string
+                description: Reference UID for the sub-directories
+        file_references:
+            type: array
+            description: Reference UID for the files within the directory
+            items:
+                type: string
+                description: Reference UID for the files within the directory
