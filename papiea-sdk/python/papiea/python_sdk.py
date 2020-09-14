@@ -234,7 +234,7 @@ class ProviderSdk(object):
             return kind_builder
 
     def add_kind(self, kind: Kind) -> Optional["KindBuilder"]:
-        if kind not in self._kind.indexOf(kind):
+        if kind not in self._kind:
             self._kind.append(kind)
             kind_builder = KindBuilder(kind, self, self.allow_extra_props)
             return kind_builder

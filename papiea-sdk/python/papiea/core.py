@@ -81,7 +81,7 @@ class ErrorSchema(TypedDict):
 ErrorSchemas = Dict[str, ErrorSchema]
 
 
-class ProcedureDescription(TypedDict):
+class ProcedureDescription(TypedDict, total=False): # total=False indicates not all fields are necessary
     input_schema: Optional[Any]  # openapi schema representing input
     output_schema: Optional[Any]  # openapi schema representing output
     errors_schemas: Optional[ErrorSchemas]  # map of error-code to openapi schema representing error

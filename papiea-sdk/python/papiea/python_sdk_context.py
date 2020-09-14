@@ -5,7 +5,7 @@ from aiohttp import ClientSession
 from multidict import CIMultiDict
 
 from .client import EntityCRUD
-from .core import Action, EntityReference, Secret, Status, Version
+from .core import Action, Entity, EntityReference, Secret, Status, Version
 
 
 class ProceduralCtx(object):
@@ -23,6 +23,10 @@ class ProceduralCtx(object):
         self.provider_api = provider.provider_api
         self.provider = provider
         self.headers = headers
+
+    def url_for(self, entity: Entity) -> str:
+        return self.base_url + "/" + self.provider_prefix + "/" + self.provider_version \
+            + "/" + entity.metadata.kind + "/" + entity.metadata.uuid
 
     def entity_client_for_user(self, entity_reference: EntityReference) -> EntityCRUD:
         return EntityCRUD(
@@ -113,7 +117,6 @@ class ProceduralCtx(object):
             if parts[0] == "Bearer":
                 return parts[1]
         raise Exception("No invoking user")
-
 
 class IntentfulCtx(ProceduralCtx):
     pass
