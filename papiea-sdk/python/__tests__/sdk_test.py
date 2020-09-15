@@ -10,6 +10,7 @@ from yaml import load as load_yaml
 from papiea.client import EntityCRUD
 from papiea.core import Action, ProcedureDescription, S2S_Key, Spec
 from papiea.python_sdk import ProviderSdk
+from papiea.utils import ref_type
 
 SERVER_PORT = int(os.environ.get("SERVER_PORT", "3000"))
 ADMIN_KEY = os.environ.get("PAPIEA_ADMIN_S2S_KEY", "")
@@ -44,8 +45,8 @@ async def create_user_s2s_key(sdk: ProviderSdk):
         return new_s2s_key.key
 
 class TestBasic:
-    directory_yaml = load_yaml_from_file("./kinds/directory_kind.yml")
-    file_yaml = load_yaml_from_file("./kinds/file_kind.yml")
+    bucket_yaml = load_yaml_from_file("./kinds/bucket_kind.yml")
+    object_yaml = load_yaml_from_file("./kinds/object_kind.yml")
 
     @pytest.mark.asyncio
     async def test_basic(self):

@@ -17,3 +17,19 @@ def validate_error_codes(error_schemas: Optional[ErrorSchemas]):
             numeric_code = int(code)
             if not isinstance(numeric_code, int) or not (400 < numeric_code < 599):
                 raise Exception("Error description should feature status code in 4xx or 5xx")
+
+def ref_type(kind: str, description: str = '') -> dict:
+    return {
+        'type': 'object',
+        'description': description,
+        'required': ['uuid', 'kind'],
+        'properties': {
+            'uuid': {
+                'type': 'string'
+            },
+            'kind': {
+                'type': 'string',
+                'example': kind or 'kind_name'
+            }
+        }
+    }
