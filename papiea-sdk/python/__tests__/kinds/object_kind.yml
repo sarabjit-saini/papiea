@@ -2,7 +2,7 @@ object:
     type: object
     title: Object
     description: Object structrure (similar to S3)
-    x-papiea-entity: basic
+    x-papiea-entity: differ
     properties:
         content:
             type: string
@@ -22,9 +22,10 @@ object:
             items:
                 type: object
                 properties:
-                    bucket_reference:
-                        type: ref_type('bucket', 'Reference of the bucket in which the object exists')
-                        description: Reference of the bucket in which the object exists
                     object_name:
                         type: string
                         description: Name of the object which refers to this object
+                    bucket_reference:
+                        type: ref_type('bucket', 'Reference of the bucket in which the object exists')
+                        description: Reference of the bucket in which the object exists
+                    

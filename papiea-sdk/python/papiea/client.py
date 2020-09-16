@@ -13,7 +13,7 @@ class EntityCRUD(object):
     def __init__(
         self,
         papiea_url: str,
-        provider: str,
+        prefix: str,
         version: str,
         kind: str,
         s2skey: Optional[str] = None,
@@ -25,7 +25,7 @@ class EntityCRUD(object):
         if s2skey is not None:
             headers["Authorization"] = f"Bearer {s2skey}"
         self.api_instance = ApiInstance(
-            f"{papiea_url}/services/{provider}/{version}/{kind}", headers=headers, logger=logger
+            f"{papiea_url}/services/{prefix}/{version}/{kind}", headers=headers, logger=logger
         )
 
     async def __aenter__(self) -> "EntityCRUD":
@@ -41,6 +41,10 @@ class EntityCRUD(object):
 
     async def get(self, entity_reference: EntityReference) -> Entity:
         return await self.api_instance.get(entity_reference.uuid)
+
+    async def get_all(self) -> list:
+        res = await self.api_instance.get("")
+        return res.results
 
     async def create(
         self, spec: Spec, metadata_extension: Optional[Any] = None
