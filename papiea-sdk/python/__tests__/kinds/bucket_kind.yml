@@ -18,6 +18,3 @@ bucket:
                     name:
                         type: string
                         description: Name of the object within the bucket
-                    reference:
-                        type: ref_type('object', 'Reference of the objects within the bucket')
-                        description: Reference of the objects within the bucket 

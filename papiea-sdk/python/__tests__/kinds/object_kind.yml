@@ -25,7 +25,3 @@ object:
                     object_name:
                         type: string
                         description: Name of the object which refers to this object
-                    bucket_reference:
-                        type: ref_type('bucket', 'Reference of the bucket in which the object exists')
-                        description: Reference of the bucket in which the object exists
-                    

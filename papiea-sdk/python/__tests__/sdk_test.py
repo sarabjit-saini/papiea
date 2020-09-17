@@ -9,7 +9,7 @@ from yaml import Loader as YamlLoader
 from yaml import load as load_yaml
 
 from papiea.client import EntityCRUD
-from papiea.core import Action, EntityReference, Key, Metadata, ProcedureDescription, S2S_Key, Spec
+from papiea.core import Action, AttributeDict, EntityReference, Key, Metadata, ProcedureDescription, S2S_Key, Spec
 from papiea.python_sdk import ProviderSdk
 from papiea.utils import ref_type
 
@@ -50,6 +50,14 @@ def setup_kinds():
 
     ensure_bucket_exists_takes = load_yaml_from_file("./procedures/ensure_bucket_exists_input.yml")
     ensure_bucket_exists_returns = load_yaml_from_file("./procedures/ensure_bucket_exists_output.yml")
+    
+    bucket_kind.get('bucket').get('properties').get('objects').get('items') \
+        .get('properties')['reference'] = ref_type(OBJECT_KIND, 'Reference of the objects within the bucket')
+    
+    object_kind.get('object').get('properties').get('references').get('items') \
+        .get('properties')['bucket_reference'] = ref_type(BUCKET_KIND, 'Reference of the bucket in which the object exists')
+
+    ensure_bucket_exists_returns['EnsureBucketExistsOutput'] = ref_type(BUCKET_KIND, 'Reference of the bucket created/found')
 
 async def create_provider_admin_s2s_key(sdk: ProviderSdk, new_key: Key):
   admin_security_api = sdk.provider_security_api
@@ -101,6 +109,7 @@ async def ensure_bucket_exists_handler(ctx, input_bucket_name):
         bucket_list = await entity_client.get_all()
         for bucket in bucket_list:
             if bucket.spec.name == input_bucket_name:
+                logger.debug("Bucket already exists. Returning it...")
                 return EntityReference(
                     uuid=bucket.metadata.uuid,
                     kind=bucket.metadata.kind
@@ -227,6 +236,7 @@ class TestBasic:
         logger.debug("Running basic test")
 
         setup_kinds()
+
         async with ProviderSdk.create_provider(
             PAPIEA_URL, ADMIN_KEY, SERVER_CONFIG_HOST, SERVER_CONFIG_PORT, logger=logger
         ) as sdk:
@@ -259,8 +269,9 @@ class TestBasic:
                 PAPIEA_URL, PROVIDER_PREFIX, PROVIDER_VERSION, BUCKET_KIND, USER_S2S_KEY
             ) as entity_client:
 
-                bucket_ref = await entity_client.invoke_kind_procedure("ensure_bucket_exists", "test-bucket1")
+                bucket1_name = "test-bucket1"
+
+                bucket_ref = await entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
                 bucket_entity = await entity_client.get(bucket_ref)
 
-                print(bucket_entity)
-            assert 1 == 1
+            assert bucket_entity.spec.name == bucket1_name
