@@ -3,6 +3,8 @@ object:
     title: Object
     description: Object structrure (similar to S3)
     x-papiea-entity: differ
+    required:
+        - content
     properties:
         content:
             type: string
@@ -13,7 +15,6 @@ object:
             x-papiea: status-only
         last_modified:
             type: string
-            format: date-time
             description: Time at which the object's content were last modified
             x-papiea: status-only
         references:
@@ -21,6 +22,7 @@ object:
             description: Information about the objects which refer to this object
             items:
                 type: object
+                x-papiea: status-only
                 properties:
                     object_name:
                         type: string

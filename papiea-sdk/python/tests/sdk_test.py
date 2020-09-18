@@ -49,7 +49,7 @@ async def create_user_s2s_key(sdk: ProviderSdk):
 
         new_s2s_key = await admin_security_api.create_key(the_key)
         user_security_api = sdk.new_security_api(new_s2s_key.key)
-        user_info = await user_security_api.user_info()
+        await user_security_api.user_info()
         return new_s2s_key.key
 
 

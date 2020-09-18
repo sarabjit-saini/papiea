@@ -1,0 +1,4 @@
+CreateObjectInput:
+    type: string
+    title: Input value of CreateObject function
+    description: Name of the object to be created
