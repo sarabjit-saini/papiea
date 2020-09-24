@@ -1,14 +1,14 @@
 {
   "name": "papiea-sdk",
-  "version": "1.0.89",
+  "version": "0.7.4+1525",
   "main": "build/provider_sdk/typescript_sdk.js",
   "files": [
     "build",
     "src"
   ],
   "scripts": {
-    "test": "jest --runInBand --coverage",
-    "test-ci": "jest --runInBand --coverage --ci --reporters=default --reporters=jest-junit",
+    "test": "node --trace-warnings node_modules/.bin/jest --runInBand --coverage",
+    "test-ci": "node --trace-warnings node_modules/.bin/jest --runInBand --coverage --ci --reporters=default --reporters=jest-junit",
     "clean": "rm -rf build",
     "build": "yarn run tsc"
   },

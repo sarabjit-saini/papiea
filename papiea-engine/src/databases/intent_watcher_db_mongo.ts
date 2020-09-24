@@ -2,7 +2,7 @@ import { Collection, Db } from "mongodb"
 import { SortParams } from "../entity/entity_api_impl"
 import { Logger } from 'papiea-backend-utils'
 import { IntentWatcher_DB } from "./intent_watcher_db_interface"
-import { IntentWatcher } from "../intentful_engine/intent_interface"
+import { IntentWatcher } from "papiea-core"
 
 export class IntentWatcher_DB_Mongo implements IntentWatcher_DB {
     collection: Collection;

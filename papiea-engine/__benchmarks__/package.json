@@ -8,8 +8,8 @@
     "src/"
   ],
   "scripts": {
-    "bench-local": "ts-node src/main.ts -- http://localhost:3000 localhost 9000",
-    "bench": "ts-node src/main.ts",
+    "bench-local": "node build/__benchmarks__/src/main.ts -- http://localhost:3000 localhost 9000",
+    "bench": "node build/__benchmarks__/src/main.ts",
     "clean": "rm -rf build",
     "build": "yarn run tsc"
   },
@@ -20,12 +20,12 @@
     "papiea-sdk": "file:../../papiea-sdk/typescript",
     "papiea-core": "file:../../papiea-core",
     "autocannon": "^4.6.0",
-    "axios": "^0.19.2"
+    "axios": "^0.19.2",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.8.3"
   },
   "devDependencies": {
     "@types/node": "^10.14.7",
-    "ts-node": "^7.0.1",
-    "typescript": "^3.8.3",
     "@types/autocannon": "^4.1.0"
   },
   "jest": {

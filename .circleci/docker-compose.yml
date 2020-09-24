@@ -1,9 +1,10 @@
-version: '3'
+version: '3.5'
 services:
         papiea-engine:
                 container_name: papiea-engine
                 build:
                         dockerfile: Dockerfile
+                        target: debug
                         context: .
                 environment:
                         - JEST_JUNIT_OUTPUT=reports/junit/results.xml

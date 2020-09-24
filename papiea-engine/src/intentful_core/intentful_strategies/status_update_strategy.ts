@@ -1,10 +1,9 @@
-import { Entity_Reference, Status, Kind, Differ, Diff } from "papiea-core";
+import { Entity_Reference, Status, Kind, Differ, Diff, Provider_Entity_Reference } from "papiea-core";
 import { Status_DB } from "../../databases/status_db_interface";
 import { UserAuthInfo } from "../../auth/authn";
 import { Spec_DB } from "../../databases/spec_db_interface";
 import { Watchlist_DB } from "../../databases/watchlist_db_interface";
 import { create_entry } from "../../intentful_engine/watchlist";
-import { Provider_Entity_Reference } from "../../../../papiea-core/src/core"
 
 export abstract class StatusUpdateStrategy {
     statusDb: Status_DB

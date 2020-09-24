@@ -1,20 +1,22 @@
-import { load } from "js-yaml";
-import { readFileSync } from "fs";
-import { resolve } from "path";
-import { plural } from "pluralize";
+import { load } from "js-yaml"
+import { readFileSync } from "fs"
+import { resolve } from "path"
+import { plural } from "pluralize"
 import {
     Data_Description,
-    Version,
+    FieldBehavior,
+    Intentful_Signature,
+    IntentfulBehaviour,
     Kind,
+    Procedural_Execution_Strategy,
     Procedural_Signature,
     Provider,
-    Procedural_Execution_Strategy,
-    SpecOnlyEntityKind
-} from "papiea-core";
-import * as http from "http";
-import uuid = require("uuid");
+    Version
+} from "papiea-core"
+import * as http from "http"
 import { IncomingMessage, ServerResponse } from "http"
-import { IntentfulBehaviour } from "papiea-core"
+import uuid = require("uuid");
+
 const url = require("url");
 const queryString = require("query-string");
 
@@ -30,91 +32,6 @@ function randomString(len: number) {
 
 export function loadYamlFromTestFactoryDir(relativePath: string): any {
     return load(readFileSync(resolve(__dirname, relativePath), "utf-8"));
-}
-
-export function getLocationDataDescription(): Data_Description {
-    let locationDataDescription = loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml");
-    let randomizedLocationDataDescription: any = {};
-    randomizedLocationDataDescription["Location" + randomString(5)] = locationDataDescription["Location"];
-    return randomizedLocationDataDescription;
-}
-
-export function getDifferLocationDataDescription(): Data_Description {
-    let locationDataDescription = loadYamlFromTestFactoryDir("./test_data/location_kind_test_data.yml");
-    locationDataDescription["Location"]["x-papiea-entity"] = IntentfulBehaviour.Differ
-    let randomizedLocationDataDescription: any = {};
-    randomizedLocationDataDescription["Location" + randomString(5)] = locationDataDescription["Location"];
-    return randomizedLocationDataDescription;
-}
-
-export function getClusterDataDescription(): Data_Description {
-    let locationDataDescription = loadYamlFromTestFactoryDir("./test_data/cluster_kind_test_data.yml");
-    let randomizedLocationDataDescription: any = {};
-    randomizedLocationDataDescription["Cluster" + randomString(5)] = locationDataDescription["Cluster"];
-    return randomizedLocationDataDescription;
-}
-
-export function getClusterWithNullableFieldsDataDescription(): Data_Description {
-    let locationDataDescription = loadYamlFromTestFactoryDir("./test_data/cluster_kind_with_nullable_fields_test_data.yml");
-    let randomizedLocationDataDescription: any = {};
-    randomizedLocationDataDescription["Cluster" + randomString(5)] = locationDataDescription["Cluster"];
-    return randomizedLocationDataDescription;
-}
-
-export function getMetadataDescription(): Data_Description {
-    let MetadataDescription = loadYamlFromTestFactoryDir("./test_data/metadata_extension.yml");
-    return MetadataDescription;
-}
-
-export function getSpecOnlyKind(): SpecOnlyEntityKind {
-    const locationDataDescription = getLocationDataDescription();
-    const name = Object.keys(locationDataDescription)[0];
-    const locationKind: SpecOnlyEntityKind = {
-        name,
-        name_plural: plural(name),
-        kind_structure: locationDataDescription,
-        intentful_signatures: [],
-        dependency_tree: new Map(),
-        kind_procedures: {},
-        entity_procedures: {},
-        differ: undefined,
-        intentful_behaviour: IntentfulBehaviour.SpecOnly
-    };
-    return locationKind;
-}
-
-export function getClusterKind(): Kind {
-    const clusterDataDescription = getClusterDataDescription()
-    const name = Object.keys(clusterDataDescription)[0]
-    const kind = {
-        name,
-        name_plural: plural(name),
-        kind_structure: clusterDataDescription,
-        intentful_signatures: [],
-        dependency_tree: new Map(),
-        kind_procedures: {},
-        entity_procedures: {},
-        differ: undefined,
-        intentful_behaviour: IntentfulBehaviour.Basic
-    }
-    return kind
-}
-
-export function getClusterKindWithNullableFields(): Kind {
-    const clusterDataDescription = getClusterWithNullableFieldsDataDescription()
-    const name = Object.keys(clusterDataDescription)[0]
-    const kind = {
-        name,
-        name_plural: plural(name),
-        kind_structure: clusterDataDescription,
-        intentful_signatures: [],
-        dependency_tree: new Map(),
-        kind_procedures: {},
-        entity_procedures: {},
-        differ: undefined,
-        intentful_behaviour: IntentfulBehaviour.Basic
-    }
-    return kind
 }
 
 function formatErrorMsg(current_field: string, missing_field: string) {
@@ -205,7 +122,7 @@ export class ProviderBuilder {
 
     public withExtensionStructure(value?: any) {
         if (value === undefined) {
-            this._extension_structure = getMetadataDescription();
+            this._extension_structure = new DescriptionBuilder(DescriptionType.Metadata).build();
         } else {
             this._extension_structure = value
         }
@@ -317,7 +234,7 @@ export class ProviderBuilder {
 
     public withKinds(value?: Kind[]) {
         if (value === undefined) {
-            this._kinds = [getSpecOnlyKind()];
+            this._kinds = [new KindBuilder(IntentfulBehaviour.SpecOnly).build()];
         } else {
             this._kinds = value;
         }
@@ -531,4 +448,145 @@ export class OAuth2Server {
         }
     }
 
+}
+
+
+export enum DescriptionType {
+    Array = "array",
+    Location = "location",
+    Cluster = "cluster",
+    Metadata = "metadata",
+}
+
+
+export class DescriptionBuilder {
+    private readonly type: DescriptionType
+    private readonly name: string
+    private readonly typeToFile: any = {
+        [DescriptionType.Array]: "./test_data/location_kind_test_data_array.yml",
+        [DescriptionType.Location]: "./test_data/location_kind_test_data_basic.yml",
+        [DescriptionType.Cluster]: "./test_data/cluster_kind_test_data.yml",
+        [DescriptionType.Metadata]: "./test_data/metadata_extension.yml",
+    }
+    private makeFeldsNullable = false
+    private additionalFields: any = {}
+    private additionalRequiredFields: string[] = []
+    private behaviour?: IntentfulBehaviour = IntentfulBehaviour.Basic;
+
+
+    constructor(type?: DescriptionType, name?: string) {
+        this.type = type ?? DescriptionType.Location
+        // metadata is a description without intentful behaviour
+        if (this.type == DescriptionType.Metadata){
+            this.withoutBehaviour()
+        }
+        this.name = name ?? ("object_" + randomString(5))
+        return this;
+    }
+
+    public build(): Data_Description {
+        const filePath = this.typeToFile[this.type]
+        let loadedDescription = loadYamlFromTestFactoryDir(filePath)
+        const name = Object.keys(loadedDescription)[0]
+        const description = loadedDescription[name]
+
+        let fields = this.type === DescriptionType.Array ? description.items.properties : description.properties
+        Object.assign(fields, this.additionalFields)
+
+        if (this.makeFeldsNullable) {
+            for (let name in fields) {
+                fields[name]["nullable"] = true
+            }
+        }
+
+        let requiredFields = this.type === DescriptionType.Array ? description.items.required : description.required
+        requiredFields.push(...this.additionalRequiredFields)
+
+        if (this.behaviour) {
+            description["x-papiea-entity"] = this.behaviour.toString()
+        }
+
+        let correctlyNamedDescription: any = {};
+        correctlyNamedDescription[this.name] = description;
+        return correctlyNamedDescription;
+
+    }
+
+    public withNullableFields() {
+        this.makeFeldsNullable = true
+        return this
+    }
+
+
+    public withField(name?: string, structure?: any) {
+        let key = name ?? ("field_" + randomString(5))
+        this.additionalFields[key] = structure !== undefined ? structure : {"type": "number"}
+        return this
+    }
+
+    public withStatusOnlyField(name?: string, type?: string) {
+        this.withField(name, {"type": type ?? "number", "x-papiea": FieldBehavior.StatusOnly})
+        return this
+    }
+
+    public withSpecOnlyField(name?: string, type?: string) {
+        this.withField(name, {"type": type ?? "number", "x-papiea": IntentfulBehaviour.SpecOnly})
+        return this
+    }
+
+    public withRequiredField(name: string) {
+        this.additionalRequiredFields.push(name)
+        return this
+    }
+
+    public withBehaviour(behaviour?: IntentfulBehaviour) {
+        this.behaviour = behaviour
+        return this
+    }
+
+    public withoutBehaviour(){
+        this.withBehaviour(undefined)
+        return this
+    }
+}
+
+
+export class KindBuilder {
+    private readonly type: IntentfulBehaviour
+    private description: Data_Description = new DescriptionBuilder().build()
+    private signatures: Intentful_Signature[] = []
+
+    constructor(type: IntentfulBehaviour) {
+        this.type = type
+        return this
+    }
+
+    public withDescription(desc: Data_Description) {
+        this.description = desc
+        return this
+    }
+
+    public withSignatures(signatures: Intentful_Signature[]) {
+        this.signatures = signatures
+        return this
+    }
+
+    public build(): Kind {
+        // explicitly set the type of the kind to the description
+        const descWithType = this.description
+        const name = Object.keys(this.description)[0]
+
+        descWithType[name]["x-papiea-entity"] = this.type.toString()
+        return {
+            name,
+            name_plural: plural(name),
+            kind_structure: descWithType,
+            intentful_signatures: this.signatures,
+            dependency_tree: new Map(),
+            kind_procedures: {},
+            entity_procedures: {},
+            differ: undefined,
+            intentful_behaviour: this.type
+        };
+    }
 }

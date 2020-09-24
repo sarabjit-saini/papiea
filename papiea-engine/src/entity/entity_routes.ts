@@ -27,7 +27,11 @@ export function createEntityAPIRouter(entity_api: Entity_API): Router {
         return { results: pageEntities, entity_count: totalEntities };
     }
 
-    const filterEntities = async function (user: UserAuthInfo, kind_name: string, filter: any, skip: number, size: number, exactMatch: boolean, sortParams?: SortParams): Promise<any> {
+    const filterEntities = async function (user: UserAuthInfo, kind_name: string, filter: any, skip: number, size: number, searchDeleted: boolean, exactMatch: boolean, sortParams?: SortParams): Promise<any> {
+        if (searchDeleted) {
+            const entities = await entity_api.filter_deleted(user, kind_name, filter, exactMatch, sortParams)
+            return paginateEntities(Object.values(entities), skip, size)
+        }
         const resultSpecs: any[] = await entity_api.filter_entity_spec(user, kind_name, filter, exactMatch, sortParams);
 
         const resultStatuses: any[] = await entity_api.filter_entity_status(user, kind_name, filter, exactMatch, sortParams);
@@ -101,13 +105,14 @@ export function createEntityAPIRouter(entity_api: Entity_API): Router {
     }))
 
     router.get("/:prefix/:version/:kind", check_request({
-        allowed_query_params: ['offset', 'limit', 'sort', 'spec', 'status', 'metadata', 'exact']
+        allowed_query_params: ['offset', 'limit', 'sort', 'spec', 'status', 'metadata', 'exact', 'deleted']
     }), asyncHandler(async (req, res) => {
         const filter: any = {};
         const offset = queryToNum(req.query.offset);
         const limit = queryToNum(req.query.limit);
         const rawSortQuery = queryToString(req.query.sort);
         const exactMatch = queryToBool(req.query.exact) ?? false
+        const searchDeleted = queryToBool(req.query.deleted) ?? false
         const sortParams = processSortQuery(rawSortQuery);
         const [skip, size] = processPaginationParams(offset, limit);
 
@@ -115,7 +120,7 @@ export function createEntityAPIRouter(entity_api: Entity_API): Router {
         filter.status = JSON.parse(queryToString(req.query.status) ?? '{}');
         filter.metadata = JSON.parse(queryToString(req.query.metadata) ?? '{}');
 
-        res.json(await filterEntities(req.user, req.params.kind, filter, skip, size, exactMatch, sortParams));
+        res.json(await filterEntities(req.user, req.params.kind, filter, skip, size, searchDeleted, exactMatch, sortParams));
     }));
 
     router.get("/:prefix/:version/:kind/:uuid", CheckNoQueryParams, asyncHandler(async (req, res) => {
@@ -126,13 +131,14 @@ export function createEntityAPIRouter(entity_api: Entity_API): Router {
     }));
 
     router.post("/:prefix/:version/:kind/filter", check_request({
-        allowed_query_params: ['offset', 'limit', 'sort', 'exact'],
+        allowed_query_params: ['offset', 'limit', 'sort', 'exact', 'deleted'],
         allowed_body_params: ['spec', 'status', 'metadata', 'offset', 'limit', 'sort']
     }), asyncHandler(async (req, res) => {
         const offset = queryToNum(req.query.offset) ?? req.body.offset;
         const limit = queryToNum(req.query.limit) ?? req.body.limit;
         const rawSortQuery = queryToString(req.query.sort) ?? req.body.sort;
         const exactMatch = queryToBool(req.query.exact) ?? false
+        const searchDeleted = queryToBool(req.query.deleted) ?? false
         const sortParams: undefined | SortParams = processSortQuery(rawSortQuery);
         const [skip, size] = processPaginationParams(offset, limit);
         const filter: any = {};
@@ -152,7 +158,7 @@ export function createEntityAPIRouter(entity_api: Entity_API): Router {
             filter.metadata = {};
         }
 
-        res.json(await filterEntities(req.user, req.params.kind, filter, skip, size, exactMatch, sortParams));
+        res.json(await filterEntities(req.user, req.params.kind, filter, skip, size, searchDeleted, exactMatch, sortParams));
     }));
 
     router.put("/:prefix/:version/:kind/:uuid", check_request({
@@ -179,7 +185,7 @@ export function createEntityAPIRouter(entity_api: Entity_API): Router {
     }));
 
     router.delete("/:prefix/:version/:kind/:uuid", CheckNoQueryParams, asyncHandler(async (req, res) => {
-        await entity_api.delete_entity_spec(req.user, req.params.prefix, req.params.version, req.params.kind, req.params.uuid);
+        await entity_api.delete_entity(req.user, req.params.prefix, req.params.version, req.params.kind, req.params.uuid);
         res.json("OK")
     }));
 

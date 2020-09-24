@@ -16,6 +16,7 @@ import {
     SpecOnlyUpdateStrategy,
     StatusUpdateStrategy
 } from "./intentful_strategies/status_update_strategy";
+import { Graveyard_DB } from "../databases/graveyard_db_interface"
 
 export type BehaviourStrategyMap = Map<IntentfulBehaviour, IntentfulStrategy>
 export type DiffSelectionStrategyMap = Map<DiffSelectionStrategy, DiffSelectionStrategyInterface>
@@ -26,11 +27,11 @@ export class IntentfulContext {
     private readonly diffSelectionStrategyMap: DiffSelectionStrategyMap
     private readonly statusUpdateStrategyMap: StatusUpdateStrategyMap
 
-    constructor(specDb: Spec_DB, statusDb: Status_DB, differ: Differ, intentWatcherDb: IntentWatcher_DB, watchlistDb: Watchlist_DB) {
+    constructor(specDb: Spec_DB, statusDb: Status_DB, graveyardDb: Graveyard_DB, differ: Differ, intentWatcherDb: IntentWatcher_DB, watchlistDb: Watchlist_DB) {
         this.behaviourStrategyMap = new Map()
-        this.behaviourStrategyMap.set(IntentfulBehaviour.Basic, new BasicIntentfulStrategy(specDb, statusDb))
-        this.behaviourStrategyMap.set(IntentfulBehaviour.SpecOnly, new SpecOnlyIntentfulStrategy(specDb, statusDb))
-        this.behaviourStrategyMap.set(IntentfulBehaviour.Differ, new DifferIntentfulStrategy(specDb, statusDb, differ, intentWatcherDb, watchlistDb))
+        this.behaviourStrategyMap.set(IntentfulBehaviour.Basic, new BasicIntentfulStrategy(specDb, statusDb, graveyardDb))
+        this.behaviourStrategyMap.set(IntentfulBehaviour.SpecOnly, new SpecOnlyIntentfulStrategy(specDb, statusDb, graveyardDb))
+        this.behaviourStrategyMap.set(IntentfulBehaviour.Differ, new DifferIntentfulStrategy(specDb, statusDb, graveyardDb, differ, intentWatcherDb, watchlistDb))
 
         this.diffSelectionStrategyMap = new Map()
         this.diffSelectionStrategyMap.set(DiffSelectionStrategy.Basic, new BasicDiffSelectionStrategy())

@@ -1,12 +1,10 @@
 import { Spec_DB } from "./spec_db_interface";
 import { Collection, Db } from "mongodb";
 import { ConflictingEntityError, EntityNotFoundError } from "./utils/errors";
-import { datestringToFilter } from "./utils/date";
 import { Entity_Reference, Metadata, Spec, Entity } from "papiea-core";
 import { SortParams } from "../entity/entity_api_impl";
 import { Logger, dotnotation } from "papiea-backend-utils";
 import { IntentfulKindReference } from "./provider_db_mongo";
-import { deepMerge, isEmpty } from "../utils/utils"
 import { build_filter_query } from "./utils/filtering"
 
 export class Spec_DB_Mongo implements Spec_DB {
@@ -156,24 +154,5 @@ export class Spec_DB_Mongo implements Spec_DB {
                 throw new Error("No valid entities found");
             }
         });
-    }
-
-
-    async delete_spec(entity_ref: Entity_Reference): Promise<void> {
-        const result = await this.collection.updateOne({
-            "metadata.uuid": entity_ref.uuid,
-            "metadata.kind": entity_ref.kind
-        }, {
-                $set: {
-                    "metadata.deleted_at": new Date()
-                }
-            });
-        if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new Error("Failed to remove spec");
-        }
-        if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new Error(`Amount of entities deleted must be 0 or 1, found: ${result.result.n}`);
-        }
-        return;
     }
 }

@@ -540,7 +540,7 @@ class KindBuilder(object):
         return self
 
     def on_create(self, handler: Callable[[ProceduralCtx, Any], Any],) -> "KindBuilder":
-        name = "__" + self.kind.name + "_create"
+        name = f"__{self.kind.name}_create"
         self.kind_procedure(
             name, {}, handler
         )
@@ -550,7 +550,7 @@ class KindBuilder(object):
         self,
         handler: Callable[[ProceduralCtx, Any], Any],
     ) -> "KindBuilder":
-        name = "__" + self.kind.name + "_delete"
+        name = f"__{self.kind.name}_delete"
         self.kind_procedure(
             name, {}, handler
         )

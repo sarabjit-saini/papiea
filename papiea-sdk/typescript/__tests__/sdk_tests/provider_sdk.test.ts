@@ -5,7 +5,7 @@ import { plural } from "pluralize"
 import { loadYamlFromTestFactoryDir, OAuth2Server, ProviderBuilder } from "../../../../papiea-engine/__tests__/test_data_factory";
 import axios from "axios"
 import { readFileSync } from "fs";
-import { Metadata, Procedural_Execution_Strategy, Provider, Spec, Action, Entity_Reference, Entity } from "papiea-core";
+import { Metadata, IntentfulBehaviour, Provider, Spec, Action, Entity_Reference, Entity } from "papiea-core";
 import uuid = require("uuid");
 import { Logger, LoggerFactory } from "papiea-backend-utils";
 import { ProviderClient } from "papiea-client";
@@ -65,7 +65,7 @@ describe("Provider Sdk tests", () => {
     });
     test("Yaml openapi spec-only model example contains valid structure", (done) => {
         expect(location_yaml.Location["x-papiea-entity"]).not.toBeUndefined();
-        expect(location_yaml.Location["x-papiea-entity"]).toBe("spec-only");
+        expect(location_yaml.Location["x-papiea-entity"]).toBe(IntentfulBehaviour.SpecOnly);
         expect(location_yaml.Location["properties"]).not.toBeUndefined();
         const props = location_yaml.Location["properties"];
         for (let prop in props) {
@@ -1438,6 +1438,106 @@ describe("SDK callback tests", () => {
         }
     });
 
+    test("Entity is deleted if on create failed", async () => {
+        expect.hasAssertions();
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        prefix = "provider_on_create_callback"
+        sdk.version(provider_version);
+        sdk.prefix(prefix);
+        location.on_create(async (ctx, input) => {
+            throw new Error("Constructor failed")
+        })
+        try {
+            await sdk.register()
+            kind_name = sdk.provider.kinds[ 0 ].name
+            const id = uuid()
+            try {
+                const { data: { metadata } } = await entityApi.post(`/${ prefix }/${ provider_version }/${ kind_name }`, {
+                    spec: {
+                        x: 10,
+                        y: 11
+                    },
+                    metadata: {
+                        uuid: id
+                    }
+                }, {
+                    headers: {
+                        "Authorization": `Bearer ${ adminKey }`
+                    }
+                })
+            } catch (e) {}
+            try {
+                await entityApi.get(`/${ prefix }/${ provider_version }/${ kind_name }/${ id }`, {
+                    headers: {
+                        "Authorization": `Bearer ${ adminKey }`
+                    }
+                })
+            } catch (e) {
+                console.log(e.response.data)
+                expect(e).toBeDefined()
+            }
+        } finally {
+            sdk.server.close();
+        }
+    });
+
+    test("On create callback shouldn't be called twice if entity is already created", async () => {
+        expect.hasAssertions();
+        const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
+        const location = sdk.new_kind(location_yaml);
+        prefix = "provider_on_create_callback_twice"
+        sdk.version(provider_version);
+        sdk.prefix(prefix);
+        let called_times = 0
+        location.on_create(async (ctx, input) => {
+            called_times++
+        })
+        try {
+            const id = uuid()
+            await sdk.register()
+            kind_name = sdk.provider.kinds[0].name
+            const { data: { metadata } } = await entityApi.post(`/${ prefix }/${ provider_version }/${ kind_name }`, {
+                spec: {
+                    x: 10,
+                    y: 11
+                },
+                metadata: {
+                    uuid: id
+                }
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${ adminKey }`
+                }
+            })
+            try {
+                await entityApi.post(`/${ prefix }/${ provider_version }/${ kind_name }`, {
+                    spec: {
+                        x: 10,
+                        y: 11
+                    },
+                    metadata: {
+                        uuid: id
+                    }
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${ adminKey }`
+                    }
+                })
+            } catch (e) {
+
+            }
+            await entityApi.delete(`/${ prefix }/${ provider_version }/${ kind_name }/${ metadata.uuid }`, {
+                headers: {
+                    'Authorization': `Bearer ${ adminKey }`
+                }
+            })
+            expect(called_times).toEqual(1)
+        } finally {
+            sdk.server.close();
+        }
+    });
+
     test("On create 2 callbacks for different kinds should be called", async () => {
         expect.assertions(2)
         const sdk = ProviderSdk.create_provider(papieaUrl, adminKey, server_config.host, server_config.port);
@@ -1724,7 +1824,8 @@ class MockProceduralCtx implements ProceduralCtx_Interface {
     get_provider_client(key?: string): ProviderClient {
         throw new Error("Method not implemented.");
     }
-
+    cleanup() {
+    }
 }
 
 

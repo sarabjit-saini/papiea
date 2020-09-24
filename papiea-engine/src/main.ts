@@ -67,8 +67,9 @@ async function setUpApplication(): Promise<express.Express> {
     const intentWatcherDB = await mongoConnection.get_intent_watcher_db(logger)
     const sessionKeyDb = await mongoConnection.get_session_key_db(logger)
     const watchlistDb = await mongoConnection.get_watchlist_db(logger)
+    const graveyardDb = await mongoConnection.get_graveyard_db(logger)
     const validator = ValidatorImpl.create()
-    const intentfulContext = new IntentfulContext(specDb, statusDb, differ, intentWatcherDB, watchlistDb)
+    const intentfulContext = new IntentfulContext(specDb, statusDb, graveyardDb, differ, intentWatcherDB, watchlistDb)
     const providerApi = new Provider_API_Impl(logger, providerDb, statusDb, s2skeyDb, watchlistDb, intentfulContext, new AdminAuthorizer(), validator);
     const sessionKeyApi = new SessionKeyAPI(sessionKeyDb)
     const userAuthInfoExtractor = new CompositeUserAuthInfoExtractor([
@@ -80,7 +81,7 @@ async function setUpApplication(): Promise<express.Express> {
     app.use(createOAuth2Router(logger, oauth2RedirectUri, providerDb, sessionKeyApi));
     const entityApiAuthorizer: Authorizer = new PerProviderAuthorizer(logger, providerApi, new ProviderCasbinAuthorizerFactory(logger));
     app.use('/provider', createProviderAPIRouter(providerApi));
-    app.use('/services', createEntityAPIRouter(new Entity_API_Impl(logger, statusDb, specDb, providerDb, intentWatcherDB, entityApiAuthorizer, validator, intentfulContext)));
+    app.use('/services', createEntityAPIRouter(new Entity_API_Impl(logger, statusDb, specDb, graveyardDb, providerDb, intentWatcherDB, entityApiAuthorizer, validator, intentfulContext)));
     app.use('/api-docs', createAPIDocsRouter('/api-docs', new ApiDocsGenerator(providerDb), providerDb));
     app.use(function (err: any, req: any, res: any, next: any) {
         if (res.headersSent) {

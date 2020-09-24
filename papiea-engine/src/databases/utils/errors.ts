@@ -14,6 +14,17 @@ export class ConflictingEntityError extends Error {
     }
 }
 
+export class GraveyardConflictingEntityError extends ConflictingEntityError {
+    private static MESSAGE = "Deleted entity with this uuid and spec version exists"
+
+    highest_spec_version: number
+
+    constructor(metadata: Metadata, spec: Spec, highest_spec_version: number, status?: Status) {
+        super(GraveyardConflictingEntityError.MESSAGE, metadata, spec, status);
+        this.highest_spec_version = highest_spec_version
+    }
+}
+
 export class EntityNotFoundError extends Error {
 
     uuid: uuid4;

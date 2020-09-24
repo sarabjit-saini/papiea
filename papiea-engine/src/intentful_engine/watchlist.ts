@@ -1,4 +1,4 @@
-import { Diff, Entity_Reference, Version, Metadata, Entity } from "papiea-core"
+import { Diff, Entity_Reference, Version, Metadata } from "papiea-core"
 
 // I don't like the provider being necessary here too much, maybe rethink this
 export interface EntryReference {

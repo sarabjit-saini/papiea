@@ -13,3 +13,7 @@ Cluster:
       type: string
     name:
       type: string
+    priorities:
+      type: array
+      items:
+        type: number

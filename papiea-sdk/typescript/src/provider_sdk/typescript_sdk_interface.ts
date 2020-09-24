@@ -2,7 +2,7 @@
 import { Kind_Builder } from "./typescript_sdk";
 import { Data_Description, Version, Status, Entity, Entity_Reference, S2S_Key, UserInfo, Action, Secret, ErrorSchemas } from "papiea-core";
 import {
-    LOG_LEVELS, LogLevel, LoggerOptions, Logger, LoggerFactory,
+    LOG_LEVELS, LogLevel, LoggerOptions, Logger, LoggerFactory
 } from 'papiea-backend-utils';
 import { IncomingHttpHeaders } from "http";
 import { provider_client, ProviderClient } from "papiea-client";
@@ -74,6 +74,7 @@ export interface IntentfulCtx_Interface {
     check_permission(entityAction: [Action, Entity_Reference][], user_token?: string, provider_prefix?: string, provider_version?: Version): Promise<boolean>
     get_logger(log_level?: string, pretty_print?: boolean): Logger
     get_provider_client(key?: string): ProviderClient
+    cleanup(): void
 }
 
 export interface ProcedureDescription {

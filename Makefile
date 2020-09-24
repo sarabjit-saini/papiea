@@ -140,3 +140,11 @@ clean:
 	cd ./papiea-engine/__benchmarks__; \
 	rm -rf build
 .PHONY: clean
+
+remove_dev_deps:
+	for p in $(papiea-packages) ; do node ./remove_dev_deps papiea-$$p; done;
+.PHONY: remove_dev_deps
+
+update_typescript_versions:
+	for p in $(papiea-packages) ; do node ./update_version papiea-$$p $(UPD_TYPE) $(BUILD_NUM) $(VERSION); done;
+.PHONY: update_typescript_versions

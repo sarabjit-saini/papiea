@@ -38,6 +38,43 @@ export enum IntentfulStatus {
     Outdated = "Outdated",
 }
 
+export interface UserInfo {
+    [key: string]: any;
+}
+
+// The watcher is started by a dedicated scheduler
+export interface IntentWatcher {
+
+    // Identifier by which provider can change status of the watcher & user can monitor the execution
+    uuid: uuid4
+
+    // Entity being observed by a watcher
+    entity_ref: Entity_Reference
+
+    // Spec version at the time of a spec change
+    spec_version: number
+
+    // User who triggered a spec change
+    user?: UserInfo
+
+    // Diffs tracked by this watcher
+    diffs: Diff[]
+
+    // Number of times a handler has failed
+    times_failed: number
+
+    // Last handler error message
+    last_handler_error?: string
+
+    // Current status of the entity
+    status: IntentfulStatus
+
+    last_status_changed?: Date
+
+    // Date of creation
+    created_at?: Date
+}
+
 export interface Provider_Entity_Reference extends Entity_Reference {
     provider_prefix: string;
     provider_version: Version
@@ -105,6 +142,10 @@ export enum IntentfulBehaviour {
     Basic = "basic",
     SpecOnly = "spec-only",
     Differ = "differ"
+}
+
+export enum FieldBehavior {
+    StatusOnly = "status-only"
 }
 
 // The differ is used to locate a diff in an entity between the
@@ -258,10 +299,6 @@ export interface Provider {
 export type Partial<T> = {
     [P in keyof T]?: T[P];
 };
-
-export interface UserInfo {
-    [key: string]: any;
-}
 
 export interface S2S_Key {
     name?: string

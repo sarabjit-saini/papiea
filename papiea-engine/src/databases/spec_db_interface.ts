@@ -38,8 +38,6 @@ export interface Spec_DB {
     list_specs_in(filter_list: any[], field_name?: string): Promise<([Metadata, Spec])[]>
 
     list_random_intentful_specs(size: number, kind_refs: IntentfulKindReference[], sortParams?: SortParams): Promise<([Metadata, Spec])[]>;
-
-    delete_spec(entity_ref: Entity_Reference): Promise<void>
 }
 
 // spec-db-interface ends here

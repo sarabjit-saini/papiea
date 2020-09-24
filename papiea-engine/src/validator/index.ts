@@ -1,6 +1,16 @@
 import { ValidationError } from "../errors/validation_error";
 import { isEmpty } from "../utils/utils"
-import { Entity_Reference, Provider, Status, Kind, Spec, IntentfulBehaviour, Data_Description, Metadata } from "papiea-core"
+import {
+    Data_Description,
+    Entity_Reference,
+    FieldBehavior,
+    IntentfulBehaviour,
+    Kind,
+    Metadata,
+    Provider,
+    Spec,
+    Status
+} from "papiea-core"
 import { SFSCompiler } from "../intentful_core/sfs_compiler"
 import * as uuid_validate from "uuid-validate"
 import { load } from "js-yaml"
@@ -134,7 +144,53 @@ export class ValidatorImpl {
                     schemas, true, proc.name,
                     undefined, true)
             })
+            Object.values(kind.kind_structure).forEach(structure => {
+                this.validate_kind_structure(structure)
+            })
         })
+    }
+
+    validate_kind_structure(schema: Data_Description) {
+        const x_papiea_field = "x-papiea"
+        const status_only_value = FieldBehavior.StatusOnly
+        // x_papiea_field property have only status_only_value value
+        this.validate_field_value(schema, x_papiea_field, [status_only_value])
+        this.validate_spec_only_structure(schema)
+    }
+
+    validate_field_value(schema: Data_Description, field_name: string, possible_values: string[]) {
+        for (let prop in schema) {
+            if (typeof schema[prop] === "object") {
+                if (field_name in schema[prop]) {
+                    const value = schema[prop][field_name]
+                    if (!possible_values.includes(value)) {
+                        let message = `${field_name} has wrong value: ${value}, `
+                        if (possible_values.length > 0) {
+                            message += `possible values are: ${possible_values.toString()}`
+                        } else {
+                            message += "the field should not be present"
+                        }
+                        throw new ValidationError([{
+                            name: "Error",
+                            message: message
+                        }])
+                    }
+                } else {
+                    this.validate_field_value(schema[prop], field_name, possible_values)
+                }
+
+            }
+        }
+    }
+
+    validate_spec_only_structure(entity: Data_Description) {
+        const spec_only_value = "spec-only"
+        const x_papiea_entity_field = "x-papiea-entity"
+        const x_papiea_field = "x-papiea"
+        if (typeof entity === "object" && entity.hasOwnProperty(x_papiea_entity_field) && entity[x_papiea_entity_field] === spec_only_value) {
+            // spec-only entity can't have x_papiea_field values
+            this.validate_field_value(entity.properties, x_papiea_field, [])
+        }
     }
 
     public validate(

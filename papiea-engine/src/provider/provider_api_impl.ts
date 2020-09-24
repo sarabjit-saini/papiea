@@ -88,7 +88,14 @@ export class Provider_API_Impl implements Provider_API {
         // Thus we get the merged version and validate it
         // Only after that we transform partial status into mongo dot notation query
         const [,currentStatus] = await this.statusDb.get_status({provider_prefix: provider_prefix, provider_version: version, ...entity_ref})
-        const mergedStatus = {...currentStatus, ...partialStatus}
+        let mergedStatus: any
+        // Replace status if dealing with arrays
+        if (Array.isArray(currentStatus) && Array.isArray(partialStatus)) {
+            this.logger.debug("Trying to update status as array, using replace semantics!")
+            mergedStatus = partialStatus
+        } else {
+            mergedStatus = {...currentStatus, ...partialStatus}
+        }
         await this.validator.validate_status(provider, entity_ref, mergedStatus);
         return strategy.update({provider_prefix: provider_prefix, provider_version: version, ...entity_ref}, partialStatus)
     }

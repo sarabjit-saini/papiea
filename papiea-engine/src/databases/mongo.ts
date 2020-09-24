@@ -9,7 +9,8 @@ import { SessionKeyDbMongo } from "./session_key_db_mongo"
 import { Logger } from 'papiea-backend-utils'
 import { IntentWatcher_DB_Mongo } from "./intent_watcher_db_mongo"
 import { Watchlist_Db_Mongo } from "./watchlist_db_mongo";
-import { timeout } from "../utils/utils";
+import { Graveyard_DB } from "./graveyard_db_interface"
+import { Graveyard_DB_Mongo } from "./graveyard_db_mongo"
 const fs = require('fs'),
     url = require('url');
 
@@ -27,6 +28,7 @@ export class MongoConnection {
     sessionKeyDb: SessionKeyDbMongo | undefined
     intentWatcherDb: IntentWatcher_DB_Mongo | undefined
     watchlistDb: Watchlist_Db_Mongo | undefined;
+    graveyardDb: Graveyard_DB_Mongo | undefined
 
     constructor(url: string, dbName: string) {
         this.url = url;
@@ -43,6 +45,7 @@ export class MongoConnection {
         this.statusDb = undefined;
         this.s2skeyDb = undefined;
         this.intentWatcherDb = undefined
+        this.graveyardDb = undefined
     }
 
     async download_rds_cert(): Promise<void> {
@@ -145,5 +148,15 @@ export class MongoConnection {
         this.watchlistDb = new Watchlist_Db_Mongo(logger, this.db);
         await this.watchlistDb.init();
         return this.watchlistDb;
+    }
+
+    async get_graveyard_db(logger: Logger): Promise<Graveyard_DB> {
+        if (this.graveyardDb !== undefined)
+            return this.graveyardDb;
+        if (this.db === undefined)
+            throw new Error("Not connected");
+        this.graveyardDb = new Graveyard_DB_Mongo(logger, this.db, this.client);
+        await this.graveyardDb.init();
+        return this.graveyardDb;
     }
 }

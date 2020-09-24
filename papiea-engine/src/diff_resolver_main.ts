@@ -39,13 +39,14 @@ async function setUpDiffResolver() {
     const providerDb = await mongoConnection.get_provider_db(logger);
     const intentWatcherDB = await mongoConnection.get_intent_watcher_db(logger)
     const watchlistDb = await mongoConnection.get_watchlist_db(logger)
+    const graveyardDb = await mongoConnection.get_graveyard_db(logger)
 
     const differ = new BasicDiffer()
-    const intentfulContext = new IntentfulContext(specDb, statusDb, differ, intentWatcherDB, watchlistDb)
+    const intentfulContext = new IntentfulContext(specDb, statusDb, graveyardDb, differ, intentWatcherDB, watchlistDb)
     const watchlist: Watchlist = new Watchlist()
 
     const intentfulListenerMongo = new IntentfulListenerMongo(statusDb, specDb, watchlist)
-    intentfulListenerMongo.run(500)
+    intentfulListenerMongo.run(250)
 
     const diffResolver = new DiffResolver(watchlist, watchlistDb, specDb, statusDb, providerDb, differ, intentfulContext, logger, batchSize)
 
@@ -53,8 +54,8 @@ async function setUpDiffResolver() {
 
     console.log("Running diff resolver")
 
-    intentResolver.run(10000, deletedWatcherPersists)
-    await diffResolver.run(3000)
+    intentResolver.run(3000, deletedWatcherPersists)
+    await diffResolver.run(1500)
 }
 
 setUpDiffResolver().then(()=>console.debug("Exiting diff resolver")).catch(console.error)

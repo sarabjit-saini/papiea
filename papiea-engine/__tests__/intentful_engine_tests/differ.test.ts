@@ -1,7 +1,6 @@
 import { SFSCompiler } from "../../src/intentful_core/sfs_compiler"
-import { getLocationDataDescription } from "../test_data_factory"
+import { DescriptionBuilder, KindBuilder } from "../test_data_factory"
 import { IntentfulBehaviour } from "papiea-core"
-import { plural } from "pluralize"
 import { BasicDiffer } from "../../src/intentful_core/differ_impl"
 import {
     Intentful_Execution_Strategy,
@@ -9,13 +8,8 @@ import {
 
 describe("Differ tests", () => {
 
-    const locationDataDescription = getLocationDataDescription()
-    const name = Object.keys(locationDataDescription)[0]
-    const locationDifferKind = {
-        name,
-        name_plural: plural(name),
-        kind_structure: locationDataDescription,
-        intentful_signatures: [{
+    const locationDataDescription = new DescriptionBuilder().build()
+    const intentfulSignature = [{
             signature: "a.{id}.[a,d]",
             name: "test",
             argument: {},
@@ -39,13 +33,8 @@ describe("Differ tests", () => {
             execution_strategy: Intentful_Execution_Strategy.Basic,
             procedure_callback: "",
             base_callback: ""
-        }],
-        dependency_tree: new Map(),
-        kind_procedures: {},
-        entity_procedures: {},
-        differ: undefined,
-        intentful_behaviour: IntentfulBehaviour.Differ
-    }
+        }]
+    const locationDifferKind = new KindBuilder(IntentfulBehaviour.Differ).withDescription(locationDataDescription).withSignatures(intentfulSignature).build()
 
     test("Differ find single diff", () => {
         expect.assertions(1)

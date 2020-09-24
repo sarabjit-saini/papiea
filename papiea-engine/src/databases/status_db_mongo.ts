@@ -1,10 +1,9 @@
 import { Status_DB } from "./status_db_interface";
 import { Db, Collection, UpdateWriteOpResult } from "mongodb"
-import { Entity_Reference, Status, Metadata, Entity } from "papiea-core";
+import { Entity_Reference, Status, Metadata, Entity, Provider_Entity_Reference } from "papiea-core";
 import { SortParams } from "../entity/entity_api_impl";
 import { Logger, dotnotation } from "papiea-backend-utils";
 import { build_filter_query } from "./utils/filtering"
-import { Provider_Entity_Reference } from "../../../papiea-core/src/core"
 
 export class Status_DB_Mongo implements Status_DB {
     collection: Collection;
@@ -117,25 +116,5 @@ export class Status_DB_Mongo implements Status_DB {
                 throw new Error("No valid entities found");
             }
         });
-    }
-
-    async delete_status(entity_ref: Provider_Entity_Reference): Promise<void> {
-        const result = await this.collection.updateOne({
-            "metadata.provider_prefix": entity_ref.provider_prefix,
-            "metadata.provider_version": entity_ref.provider_version,
-            "metadata.uuid": entity_ref.uuid,
-            "metadata.kind": entity_ref.kind
-        }, {
-                $set: {
-                    "metadata.deleted_at": new Date()
-                }
-            });
-        if (result.result.n === undefined || result.result.ok !== 1) {
-            throw new Error("Failed to remove status");
-        }
-        if (result.result.n !== 1 && result.result.n !== 0) {
-            throw new Error("Amount of entities must be 0 or 1");
-        }
-        return;
     }
 }

@@ -1,6 +1,7 @@
 import {
-    Logger, LoggerFactory, LogLevel, ProceduralCtx_Interface, SecurityApi,
+    Logger, LoggerFactory, LogLevel, ProceduralCtx_Interface, SecurityApi
 } from "./typescript_sdk_interface"
+import { LoggerHandle } from 'papiea-backend-utils';
 import { Entity, Status, Entity_Reference, Action, Version, Secret } from "papiea-core";
 import axios, { AxiosInstance } from "axios";
 import { ProviderSdk } from "./typescript_sdk";
@@ -16,6 +17,7 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
     provider: ProviderSdk;
     headers: IncomingHttpHeaders;
     loggerFactory: LoggerFactory
+    loggerHandles: LoggerHandle[]
 
     constructor(provider: ProviderSdk, headers: IncomingHttpHeaders,
                 logPath: string)
@@ -29,6 +31,7 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
         this.headers = headers
         this.loggerFactory = new LoggerFactory({
             logPath: `${this.provider_prefix}/${this.provider_version}/${logPath}`})
+        this.loggerHandles = []
     }
 
     url_for(entity: Entity): string {
@@ -102,7 +105,9 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
     }
 
     get_logger(level?: LogLevel): Logger {
-        return this.loggerFactory.createLogger({level})
+        const [logger, handle] = this.loggerFactory.createLogger({level})
+        this.loggerHandles.push(handle)
+        return logger
     }
 
     get_provider_client(key?: string): ProviderClient {
@@ -117,5 +122,11 @@ export class ProceduralCtx implements ProceduralCtx_Interface {
             }
         }
         return provider_client(this.provider.papiea_url, this.provider_prefix, this.provider_version, token)
+    }
+
+    cleanup() {
+        for (let handle of this.loggerHandles) {
+            handle.cleanup()
+        }
     }
 }

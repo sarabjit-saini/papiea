@@ -1,5 +1,5 @@
 import axios, { AxiosPromise, AxiosRequestConfig } from "axios";
-import { Metadata, Spec, Entity_Reference, Entity, EntitySpec, PapieaError } from "papiea-core";
+import { Metadata, Spec, Entity_Reference, Entity, EntitySpec, PapieaError, IntentWatcher } from "papiea-core";
 import {
     BadRequestError,
     ConflictingEntityError,
@@ -57,14 +57,14 @@ async function create_entity_with_meta(provider: string, kind: string, version: 
     return { metadata, spec };
 }
 
-async function update_entity(provider: string, kind: string, version: string, request_spec: Spec, request_metadata: Metadata, papiea_url: string, s2skey: string): Promise<EntitySpec> {
-    const { data: { metadata, spec } } = await make_request(axios.put, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ request_metadata.uuid }`, {
+async function update_entity(provider: string, kind: string, version: string, request_spec: Spec, request_metadata: Metadata, papiea_url: string, s2skey: string): Promise<IntentWatcher | undefined> {
+    const { data: { watcher } } = await make_request(axios.put, `${ papiea_url }/services/${ provider }/${ version }/${ kind }/${ request_metadata.uuid }`, {
         spec: request_spec,
         metadata: {
             spec_version: request_metadata.spec_version
         }
     }, { headers: { "Authorization": `Bearer ${ s2skey }` } });
-    return { metadata, spec }
+    return watcher
 }
 
 async function get_entity(provider: string, kind: string, version: string, entity_reference: Entity_Reference, papiea_url: string, s2skey: string): Promise<Entity> {
@@ -145,7 +145,7 @@ export interface EntityCRUD {
 
     create_with_meta(metadata: Partial<Metadata>, spec: Spec): Promise<EntitySpec>
 
-    update(metadata: Metadata, spec: Spec): Promise<EntitySpec>
+    update(metadata: Metadata, spec: Spec): Promise<IntentWatcher | undefined>
 
     delete(entity_reference: Entity_Reference): Promise<void>
 

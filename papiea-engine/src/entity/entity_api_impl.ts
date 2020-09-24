@@ -15,7 +15,9 @@ import {
     uuid4,
     Version,
     Action,
-    Provider_Entity_Reference
+    Provider_Entity_Reference,
+    Entity,
+    IntentWatcher
 } from "papiea-core";
 import { ProcedureInvocationError } from "../errors/procedure_invocation_error";
 import uuid = require("uuid");
@@ -23,9 +25,10 @@ import { PermissionDeniedError } from "../errors/permission_error";
 import { Logger } from "papiea-backend-utils";
 import { IntentfulContext } from "../intentful_core/intentful_context"
 import { Provider_DB } from "../databases/provider_db_interface"
-import { IntentWatcher, IntentWatcherMapper } from "../intentful_engine/intent_interface"
+import { IntentWatcherMapper } from "../intentful_engine/intent_interface"
 import { IntentWatcher_DB } from "../databases/intent_watcher_db_interface"
 import { ConflictingEntityError } from "../databases/utils/errors"
+import { Graveyard_DB } from "../databases/graveyard_db_interface"
 
 export type SortParams = { [key: string]: number };
 
@@ -38,10 +41,12 @@ export class Entity_API_Impl implements Entity_API {
     private validator: Validator
     private readonly intentfulCtx: IntentfulContext
     private providerDb: Provider_DB
+    private graveyardDb: Graveyard_DB
 
-    constructor(logger: Logger, status_db: Status_DB, spec_db: Spec_DB, provider_db: Provider_DB, intent_watcher_db: IntentWatcher_DB, authorizer: Authorizer, validator: Validator, intentfulCtx: IntentfulContext) {
+    constructor(logger: Logger, status_db: Status_DB, spec_db: Spec_DB, graveyardDb: Graveyard_DB, provider_db: Provider_DB, intent_watcher_db: IntentWatcher_DB, authorizer: Authorizer, validator: Validator, intentfulCtx: IntentfulContext) {
         this.status_db = status_db;
         this.spec_db = spec_db;
+        this.graveyardDb = graveyardDb
         this.providerDb = provider_db;
         this.authorizer = authorizer;
         this.logger = logger;
@@ -88,8 +93,10 @@ export class Entity_API_Impl implements Entity_API {
             }
         }
         this.validator.validate_uuid(kind, request_metadata.uuid)
-        if (!request_metadata.spec_version) {
-            request_metadata.spec_version = 0;
+        if (request_metadata.spec_version === undefined || request_metadata.spec_version === null) {
+            let spec_version = await this.graveyardDb.get_highest_spec_version(
+                {provider_prefix: prefix, kind: kind_name, provider_version: version, uuid: request_metadata.uuid})
+            request_metadata.spec_version = spec_version
         }
         request_metadata.kind = kind.name;
         request_metadata.provider_prefix = prefix
@@ -129,6 +136,13 @@ export class Entity_API_Impl implements Entity_API {
         return filteredRes;
     }
 
+    async filter_deleted(user: UserAuthInfo, kind_name: string, fields: any, exact_match: boolean, sortParams?: SortParams): Promise<Entity[]> {
+        fields.metadata.kind = kind_name;
+        const res = await this.graveyardDb.list_entities(fields, exact_match, sortParams)
+        const filteredRes = await this.authorizer.filter(user, res, Action.Read, x => { return { "metadata": x.metadata } });
+        return filteredRes
+    }
+
     async update_entity_spec(user: UserAuthInfo, uuid: uuid4, prefix: string, spec_version: number, extension: {[key: string]: any}, kind_name: string, version: Version, spec_description: Spec): Promise<IntentWatcher | null> {
         const provider = await this.get_provider(prefix, version);
         const kind = this.providerDb.find_kind(provider, kind_name);
@@ -144,14 +158,15 @@ export class Entity_API_Impl implements Entity_API {
         return watcher;
     }
 
-    async delete_entity_spec(user: UserAuthInfo, prefix: string, version: Version, kind_name: string, entity_uuid: uuid4): Promise<void> {
+    async delete_entity(user: UserAuthInfo, prefix: string, version: Version, kind_name: string, entity_uuid: uuid4): Promise<void> {
         const provider = await this.get_provider(prefix, version);
         const kind = this.providerDb.find_kind(provider, kind_name);
-        const entity_ref: Entity_Reference = { kind: kind_name, uuid: entity_uuid };
-        const [metadata, _] = await this.spec_db.get_spec(entity_ref);
+        const entity_ref: Provider_Entity_Reference = { kind: kind_name, uuid: entity_uuid, provider_prefix: prefix, provider_version: version };
+        const [metadata, spec] = await this.spec_db.get_spec(entity_ref);
+        const [_, status] = await this.status_db.get_status(entity_ref);
         await this.authorizer.checkPermission(user, { "metadata": metadata }, Action.Delete);
         const strategy = this.intentfulCtx.getIntentfulStrategy(kind, user)
-        await strategy.delete(metadata)
+        await strategy.delete({ metadata, spec, status })
     }
 
     async call_procedure(user: UserAuthInfo, prefix: string, kind_name: string, version: Version, entity_uuid: uuid4, procedure_name: string, input: any): Promise<any> {

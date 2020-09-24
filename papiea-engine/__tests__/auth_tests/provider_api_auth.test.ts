@@ -1,8 +1,13 @@
 import "jest";
 import axios from "axios";
-import { getClusterKind, OAuth2Server, ProviderBuilder } from "../test_data_factory"
+import {
+    DescriptionBuilder,
+    DescriptionType, KindBuilder,
+    OAuth2Server,
+    ProviderBuilder
+} from "../test_data_factory"
 import uuid = require("uuid");
-import { Provider, Version } from "papiea-core";
+import { IntentfulBehaviour, Provider, Version } from "papiea-core";
 
 declare var process: {
     env: {
@@ -35,7 +40,8 @@ const entityApi = axios.create({
 });
 
 describe("Provider API auth tests", () => {
-    const clusterKinds = [getClusterKind()]
+    const clusterDescription = new DescriptionBuilder(DescriptionType.Cluster).build()
+    const clusterKinds = [new KindBuilder(IntentfulBehaviour.Basic).withDescription(clusterDescription).build()]
     const provider: Provider = new ProviderBuilder()
         .withVersion("0.1.0")
         .withKinds(clusterKinds)
@@ -393,7 +399,8 @@ describe("Provider API auth tests", () => {
 });
 
 describe('Read provider security check', function () {
-    const clusterKinds = [getClusterKind()]
+    const clusterDescription = new DescriptionBuilder(DescriptionType.Cluster).build()
+    const clusterKinds = [new KindBuilder(IntentfulBehaviour.Basic).withDescription(clusterDescription).build()]
     const oauth2Server = OAuth2Server.createServer();
     const oauth2ServerHost = '127.0.0.1';
     const oauth2ServerPort = 9002;

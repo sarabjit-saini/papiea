@@ -1,7 +1,6 @@
 // Shlomi.v
 // Trying to use relative npm packages turns out to be hell for when you want to publish your packages. I may simply not be familiar
 // with the right way. 
-
 // This file will make a temporary change to each package.json file, pointing the packages at the repositories instead of the relative paths.
 
 var child_process = require('child_process')

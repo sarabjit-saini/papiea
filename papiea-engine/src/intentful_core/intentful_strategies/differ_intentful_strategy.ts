@@ -1,21 +1,21 @@
 import { IntentfulStrategy } from "./intentful_strategy_interface"
 import { Spec_DB } from "../../databases/spec_db_interface"
 import { Status_DB } from "../../databases/status_db_interface"
-import { Differ, Metadata, Spec } from "papiea-core"
+import { Differ, Metadata, Spec, IntentWatcher } from "papiea-core"
 import { IntentWatcher_DB } from "../../databases/intent_watcher_db_interface"
-import { IntentWatcher } from "../../intentful_engine/intent_interface"
 import { IntentfulStatus } from "papiea-core"
 import { Watchlist_DB } from "../../databases/watchlist_db_interface";
 import uuid = require("uuid")
 import { create_entry } from "../../intentful_engine/watchlist";
+import { Graveyard_DB } from "../../databases/graveyard_db_interface"
 
 export class DifferIntentfulStrategy extends IntentfulStrategy {
     protected differ: Differ
     protected intentWatcherDb: IntentWatcher_DB
     protected watchlistDb: Watchlist_DB;
 
-    constructor(specDb: Spec_DB, statusDb: Status_DB, differ: Differ, intentWatcherDb: IntentWatcher_DB, watchlistDb: Watchlist_DB) {
-        super(specDb, statusDb)
+    constructor(specDb: Spec_DB, statusDb: Status_DB, graveyardDb: Graveyard_DB, differ: Differ, intentWatcherDb: IntentWatcher_DB, watchlistDb: Watchlist_DB) {
+        super(specDb, statusDb, graveyardDb)
         this.differ = differ
         this.intentWatcherDb = intentWatcherDb
         this.watchlistDb = watchlistDb
@@ -59,8 +59,11 @@ export class DifferIntentfulStrategy extends IntentfulStrategy {
         try {
             await this.update_entity(metadata, spec)
         } catch (e) {
+            watcher.times_failed++
+            watcher.last_handler_error = e.message
             watcher.status = IntentfulStatus.Failed
-            await this.intentWatcherDb.update_watcher(watcher.uuid, { status: watcher.status })
+            await this.intentWatcherDb.update_watcher(watcher.uuid, { ...watcher })
+            throw e
         }
         return watcher
     }

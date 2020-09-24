@@ -1,5 +1,5 @@
 import { SortParams } from "../entity/entity_api_impl"
-import { IntentWatcher } from "../intentful_engine/intent_interface"
+import { IntentWatcher } from "papiea-core"
 
 export interface IntentWatcher_DB {
 

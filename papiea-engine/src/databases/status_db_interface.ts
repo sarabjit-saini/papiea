@@ -30,8 +30,6 @@ export interface Status_DB {
 
     list_status_in(filter_list: any[], field_name?: string): Promise<([Metadata, Status])[]>
 
-    delete_status(entity_ref: Provider_Entity_Reference): Promise<void>
-
     update_status(entity_ref: Provider_Entity_Reference, status: Status): Promise<void>
 }
 

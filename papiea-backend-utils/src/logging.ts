@@ -36,6 +36,16 @@ export interface Logger {
     debug(msg: any, ...messages: any[]): void
 }
 
+export class LoggerHandle {
+    constructor(private logger: winston.Logger) {
+    }
+
+    cleanup(): void {
+        this.logger.close()
+        this.logger.clear()
+    }
+}
+
 export type LoggerOptions = {
     logPath?: string,
     level: LogLevel,
@@ -54,7 +64,8 @@ export class LoggerFactory {
 
     public static makeLogger(options: Partial<LoggerOptions>): Logger {
         const factory = new LoggerFactory(options)
-        return factory.createLogger()
+        const [logger, _] = factory.createLogger()
+        return logger
     }
 
     public static nested(parent: LoggerFactory,
@@ -71,7 +82,7 @@ export class LoggerFactory {
         }, options)
     }
 
-    createLogger(options?: Partial<LoggerOptions>): Logger {
+    createLogger(options?: Partial<LoggerOptions>): [Logger, LoggerHandle] {
         const opts = LoggerFactory.mergeOptions(this.options, options ?? {})
         const formatArgs: Format[] = [winston.format.timestamp()]
 
@@ -134,7 +145,7 @@ export class LoggerFactory {
             ]
         })
 
-        return new LoggerImpl(logger)
+        return [new LoggerImpl(logger), new LoggerHandle(logger)]
     }
 
     public static mergeOptions(first: LoggerOptions,
