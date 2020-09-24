@@ -95,7 +95,7 @@ class InvocationError(Exception):
 
     @staticmethod
     def from_error(e: Exception):
-        return InvocationError(500, str(e), [e])
+        return InvocationError(500, str(e), [])
 
     def to_response(self) -> dict:
         return {
