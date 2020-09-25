@@ -20,10 +20,15 @@ object:
         references:
             type: array
             description: Information about the objects which refer to this object
+            x-papiea: status-only
             items:
                 type: object
-                x-papiea: status-only
+                required: ['bucket_name', 'object_name', 'bucket_reference']
                 properties:
+                    bucket_name:
+                        type: string
+                        description: Name of the bucket in which the object exists
                     object_name:
                         type: string
                         description: Name of the object which refers to this object
+                    

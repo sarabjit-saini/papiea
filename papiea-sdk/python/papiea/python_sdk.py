@@ -505,7 +505,16 @@ class KindBuilder(object):
                         },
                     }
                 },
-                result={},
+                result={
+                    "IntentfulOutput": {
+                        "type": "object",
+                        "nullable": "true",
+                        "properties": {
+                            "delay_secs": {"type": "integer"}
+                        },
+                        "description": "Amount of seconds to wait before this entity will be checked again by the intent engine"
+                    }
+                },
                 execution_strategy=IntentfulExecutionStrategy.Basic,
                 procedure_callback=procedure_callback_url,
                 base_callback=callback_url,
@@ -532,7 +541,6 @@ class KindBuilder(object):
             except Exception as e:
                 e = InvocationError.from_error(e)
                 return web.json_response(e.to_response(), status=e.status_code)
-
         self.server_manager.register_handler(
             f"/{self.kind.name}/{sfs_signature}", procedure_callback_fn
         )

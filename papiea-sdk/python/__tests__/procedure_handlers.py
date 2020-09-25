@@ -6,27 +6,6 @@ import __tests__.utils as utils
 from papiea.core import AttributeDict, EntityReference, Spec
 from papiea.python_sdk_exceptions import ConflictingEntityException
 
-async def bucket_constructor(ctx, entity):
-  """
-  Construct a bucket entity
-  """
-  papiea_test.logger.debug("Inside bucket constructor")
-  status = AttributeDict(
-      name=entity.spec.name,
-      objects=entity.spec.objects
-  )
-  await ctx.update_status(entity.metadata, status)
-
-async def object_constructor(ctx, entity):
-  """
-  Construct a object entity
-  """
-  papiea_test.logger.debug("Inside object constructor")
-  status = AttributeDict(
-      content=entity.spec.content
-  )
-  await ctx.update_status(entity.metadata, status)
-
 async def ensure_bucket_exists_handler(ctx, input_bucket_name):
     # Run get query to obtain the list of buckets
     # Check if bucket_name exists in the bucket list
@@ -76,8 +55,11 @@ async def create_object_handler(ctx, entity_bucket, input_object_name):
         async with ctx.entity_client_for_user(utils.object_kind_dict) as entity_client:
             try:
                 entity_object = await entity_client.create(
-                    Spec(content="", size=0, last_modified=str(datetime.now(timezone.utc)),
+                    Spec(content="",
+                        size=0,
+                        last_modified=str(datetime.now(timezone.utc)),
                         references=[AttributeDict(
+                            bucket_name=entity_bucket.spec.name,
                             object_name=input_object_name,
                             bucket_reference=EntityReference(
                                 uuid=entity_bucket.metadata.uuid,
@@ -151,7 +133,9 @@ async def link_object_handler(ctx, entity_bucket, input_object):
                 raise Exception("Object not found in the bucket")
 
             entity_object.spec.references.append(
-                AttributeDict(object_name=input_object.object_name,
+                AttributeDict(
+                    bucket_name=entity_bucket.spec.name,
+                    object_name=input_object.object_name,
                     bucket_reference=AttributeDict(
                         uuid=entity_bucket.metadata.uuid,
                         kind=papiea_test.BUCKET_KIND
@@ -181,8 +165,8 @@ async def unlink_object_handler(ctx, entity_bucket, input_object):
     # assuming input_object to be the object name and the uid
     # check if the name exists in the object list
     # if does not exists, return None/failure
-    # else remove the object name and reference from the objects list and
-    # remove the object name and bucket reference from the object' references list
+    # else remove the object name and reference from the bucket' objects list and
+    # remove the object from the object' references list
     # if the object' references list become empty, delete the object entity
 
     objects_list = entity_bucket.spec.objects
@@ -202,7 +186,7 @@ async def unlink_object_handler(ctx, entity_bucket, input_object):
             try:
                 entity_object = await entity_client.get(AttributeDict(uuid=input_object.object_uuid))
                 entity_object.spec.references[:] = [d for d in entity_object.spec.references
-                    if d.get("object_name") != input_object.object_name or d.get("bucket_reference") != {"uuid": entity_bucket.metadata.uuid, "kind": papiea_test.BUCKET_KIND}]
+                    if d.get("object_name") != input_object.object_name or d.get("bucket_name") != entity_bucket.spec.name]
 
                 if not entity_object.spec.references:
                     papiea_test.logger.debug("Object refcount is zero. Deleting the object...")
@@ -225,3 +209,42 @@ async def unlink_object_handler(ctx, entity_bucket, input_object):
         raise Exception("Object not found in the bucket")
 
     return EntityReference(uuid="", kind="", message="Unable to unlink object entity")
+
+async def bucket_constructor(ctx, entity):
+  """
+  Construct a bucket entity
+  """
+  papiea_test.logger.debug("Inside bucket constructor")
+  status = AttributeDict(
+      name=entity.spec.name,
+      objects=entity.spec.objects
+  )
+  await ctx.update_status(entity.metadata, status)
+
+async def object_constructor(ctx, entity):
+  """
+  Construct a object entity
+  """
+  papiea_test.logger.debug("Inside object constructor")
+  status = AttributeDict(
+      content=entity.spec.content,
+      size=entity.spec.size,
+      last_modified=entity.spec.last_modified,
+      references=entity.spec.references
+  )
+  await ctx.update_status(entity.metadata, status)
+
+async def bucket_name_handler(ctx, entity, diff):
+    papiea_test.logger.debug("Bucket name handler invoked")
+
+async def object_content_handler(ctx, entity, diff):
+    papiea_test.logger.debug("Object content handler invoked")
+
+async def on_object_added(ctx, entity, diff):
+    papiea_test.logger.debug("Object add handler invoked")
+
+async def on_object_removed(ctx, entity, diff):
+    papiea_test.logger.debug("Object remove handler invoked")
+
+async def on_object_updated(ctx, entity, diff):
+    papiea_test.logger.debug("Object update handler invoked")
