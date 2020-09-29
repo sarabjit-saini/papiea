@@ -70,7 +70,7 @@ def setup_kinds():
 
     unlink_object_takes = load_yaml_from_file("./procedures/unlink_object_input.yml")
     unlink_object_returns = AttributeDict(
-        UnlinkObjectOutput=ref_type(papiea_test.OBJECT_KIND, "Reference of the object to which it was linked")
+        UnlinkObjectOutput=ref_type(papiea_test.BUCKET_KIND, "Reference of the bucket from which the object was removed")
     )
     unlink_object_returns.get("UnlinkObjectOutput").get("properties") \
         ["message"] = AttributeDict(type="string", description="Error message")
@@ -97,7 +97,7 @@ async def create_provider_admin_s2s_key(sdk: ProviderSdk, new_key: Key):
     try:
         await admin_security_api.create_key(the_key)
         provider_admin_security_api = sdk.new_security_api(new_key)
-        user_info = await provider_admin_security_api.user_info()
+        await provider_admin_security_api.user_info()
         # papiea_test.logger.debug(f"User info {user_info}")
     except SecurityApiError as err:
         raise SecurityApiError.from_error(err, str(err))
@@ -162,7 +162,7 @@ async def setup_and_register_sdk() -> ProviderServerManager:
     setup_kinds()
 
     async with ProviderSdk.create_provider(
-        papiea_test.PAPIEA_URL, papiea_test.PAPIEA_ADMIN_S2S_KEY, papiea_test.SERVER_CONFIG_HOST, papiea_test.SERVER_CONFIG_PORT#, logger=papiea_test.logger
+        papiea_test.PAPIEA_URL, papiea_test.PAPIEA_ADMIN_S2S_KEY, papiea_test.SERVER_CONFIG_HOST, papiea_test.SERVER_CONFIG_PORT, logger=papiea_test.logger
     ) as sdk:
         sdk.version(papiea_test.PROVIDER_VERSION)
         sdk.prefix(papiea_test.PROVIDER_PREFIX)
@@ -178,13 +178,13 @@ async def setup_and_register_sdk() -> ProviderServerManager:
             bucket = sdk.new_kind(bucket_yaml)
         except Exception as ex:
             raise ex
-        bucket.on_create(procedure_handlers.bucket_constructor)
+        bucket.on_create(procedure_handlers.bucket_create_handler)
 
         try:
             obj = sdk.new_kind(object_yaml)
         except Exception as ex:
             raise ex
-        obj.on_create(procedure_handlers.object_constructor)
+        obj.on_create(procedure_handlers.object_create_handler)
 
         bucket.on("name", procedure_handlers.bucket_name_handler)
         bucket.on("objects.+{name}", procedure_handlers.on_object_added)

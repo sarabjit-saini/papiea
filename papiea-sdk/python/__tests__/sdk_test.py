@@ -26,9 +26,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -36,8 +35,8 @@ class TestEntityOperations:
 
                 assert bucket1_entity.spec.name == bucket1_name
                 assert len(bucket1_entity.spec.objects) == 0
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_duplicate_bucket_create(self):
@@ -49,8 +48,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -64,8 +63,8 @@ class TestEntityOperations:
 
                 assert bucket1_entity.spec.name == bucket1_name
                 assert len(bucket1_entity.spec.objects) == 0
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_new_object_create(self):
@@ -77,8 +76,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -99,14 +98,8 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
-            except Exception as ex:
-                papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_duplicate_object_create(self):
@@ -118,8 +111,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -134,21 +127,14 @@ class TestEntityOperations:
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
                     b1_object1_entity = await object_entity_client.get(object_ref)
 
-                assert len(bucket1_entity.spec.objects) == 1
-                assert bucket1_entity.spec.objects[0].name == object1_name
-                assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 await bucket_entity_client.invoke_procedure("create_object", bucket1_entity.metadata, object1_name)
-            except Exception as ex:
-                papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-                assert str(ex) == "Object already exists in the bucket"
-            finally:
-                await server.close()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
+            assert str(ex) == "Object already exists in the bucket"
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_different_bucket_different_name_link(self):
@@ -160,8 +146,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
                 bucket2_name = "test-bucket2"
 
@@ -189,10 +175,6 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object2_name,
@@ -207,12 +189,8 @@ class TestEntityOperations:
                 assert len(bucket2_entity.spec.objects) == 1
                 assert bucket2_entity.spec.objects[0].name == object2_name
                 assert bucket2_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
-                assert len(b1_object1_entity.spec.references) == 2
-                assert b1_object1_entity.spec.references[1].bucket_name == bucket2_name
-                assert b1_object1_entity.spec.references[1].object_name == object2_name
-                assert b1_object1_entity.spec.references[1].bucket_reference.uuid == bucket2_entity.metadata.uuid
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_different_bucket_same_name_link(self):
@@ -224,8 +202,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
                 bucket2_name = "test-bucket2"
 
@@ -252,10 +230,6 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object1_name,
@@ -270,12 +244,8 @@ class TestEntityOperations:
                 assert len(bucket2_entity.spec.objects) == 1
                 assert bucket2_entity.spec.objects[0].name == object1_name
                 assert bucket2_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
-                assert len(b1_object1_entity.spec.references) == 2
-                assert b1_object1_entity.spec.references[1].bucket_name == bucket2_name
-                assert b1_object1_entity.spec.references[1].object_name == object1_name
-                assert b1_object1_entity.spec.references[1].bucket_reference.uuid == bucket2_entity.metadata.uuid
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_same_bucket_different_name_link(self):
@@ -287,8 +257,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -310,10 +280,6 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object2_name,
@@ -328,12 +294,8 @@ class TestEntityOperations:
                 assert len(bucket1_entity.spec.objects) == 2
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
-                assert len(b1_object1_entity.spec.references) == 2
-                assert b1_object1_entity.spec.references[1].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[1].object_name == object2_name
-                assert b1_object1_entity.spec.references[1].bucket_reference.uuid == bucket1_entity.metadata.uuid
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_same_bucket_same_name_link(self):
@@ -345,8 +307,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -367,21 +329,17 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object1_name,
                     object_uuid=b1_object1_entity.metadata.uuid
                 )
                 await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
-            except Exception as ex:
-                papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-                assert str(ex) == "Object already exists in the bucket"
-            finally:
-                await server.close()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
+            assert str(ex) == "Object already exists in the bucket"
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_different_bucket_different_name_exists_link(self):
@@ -393,8 +351,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
                 bucket2_name = "test-bucket2"
 
@@ -422,10 +380,6 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_ref = await bucket_entity_client.invoke_procedure("create_object", bucket2_entity.metadata, object2_name)
                 async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
@@ -437,21 +391,17 @@ class TestEntityOperations:
                 assert bucket2_entity.spec.objects[0].name == object2_name
                 assert bucket2_entity.spec.objects[0].reference.uuid == b2_object2_entity.metadata.uuid
                 assert b2_object2_entity.spec.content == ""
-                assert len(b2_object2_entity.spec.references) == 1
-                assert b2_object2_entity.spec.references[0].bucket_name == bucket2_name
-                assert b2_object2_entity.spec.references[0].object_name == object2_name
-                assert b2_object2_entity.spec.references[0].bucket_reference.uuid == bucket2_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object2_name,
                     object_uuid=b1_object1_entity.metadata.uuid
                 )
                 await bucket_entity_client.invoke_procedure("link_object", bucket2_entity.metadata, object_input)
-            except Exception as ex:
-                papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-                assert str(ex) == "Object already exists in the bucket"
-            finally:
-                await server.close()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
+            assert str(ex) == "Object already exists in the bucket"
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_non_existent_object_link(self):
@@ -463,9 +413,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -481,11 +430,11 @@ class TestEntityOperations:
                     object_uuid="shouldfailuuid"
                 )
                 await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
-            except Exception as ex:
-                papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-                assert str(ex) == "Object not found in the bucket"
-            finally:
-                await server.close()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
+            assert str(ex) == "Papiea exception: Entity not found."
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_object_unlink(self):
@@ -497,8 +446,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -520,10 +469,6 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object2_name,
@@ -538,26 +483,15 @@ class TestEntityOperations:
                 assert len(bucket1_entity.spec.objects) == 2
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
-                assert len(b1_object1_entity.spec.references) == 2
-                assert b1_object1_entity.spec.references[1].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[1].object_name == object2_name
-                assert b1_object1_entity.spec.references[1].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
-                object_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
-                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
-                    b1_object1_entity = await object_entity_client.get(object_ref)
-
+                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
                 assert len(bucket1_entity.spec.objects) == 1
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_object_delete_unlink(self):
@@ -569,8 +503,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -591,26 +525,17 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object1_name,
                     object_uuid=b1_object1_entity.metadata.uuid
                 )
-                object_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
-
+                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
-                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
-                    object_list = await object_entity_client.get_all()
-
                 assert len(bucket1_entity.spec.objects) == 0
-                assert len(object_list) == 0
-            finally:
-                await server.close()
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
     async def test_non_existent_object_unlink(self):
@@ -622,8 +547,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -639,14 +564,14 @@ class TestEntityOperations:
                     object_uuid="shouldfailuuid"
                 )
                 await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
-            except Exception as ex:
-                papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-                assert str(ex) == "Object not found in the bucket"
-            finally:
-                await server.close()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
+            assert str(ex) == "Object not found in the bucket"
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
-    async def test_bucket_change_name_intent(self):
+    async def test_bucket_name_change_intent(self):
         papiea_test.logger.debug("Running test to change bucket name and validate intent resolver")
 
         try:
@@ -655,8 +580,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -677,10 +602,6 @@ class TestEntityOperations:
                 assert bucket1_entity.spec.objects[0].name == object1_name
                 assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 retries = 10
                 for _ in range(1, retries+1):
@@ -689,9 +610,16 @@ class TestEntityOperations:
                         break
                     time.sleep(5)
 
+                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
+                    b1_object1_entity = await object_entity_client.get(object_ref)
+
                 assert len(bucket1_entity.status.objects) == 1
                 assert bucket1_entity.status.objects[0].name == object1_name
                 assert bucket1_entity.status.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
+                assert len(b1_object1_entity.status.references) == 1
+                assert b1_object1_entity.status.references[0].bucket_name == bucket1_name
+                assert b1_object1_entity.status.references[0].object_name == object1_name
+                assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 new_bucket1_name = "new-test-bucket1"
                 await bucket_entity_client.invoke_procedure("change_bucket_name", bucket1_entity.metadata, new_bucket1_name)
@@ -702,13 +630,18 @@ class TestEntityOperations:
                         break
                     time.sleep(5)
 
+                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
+                    b1_object1_entity = await object_entity_client.get(object_ref)
+
                 assert bucket1_entity.spec.name == new_bucket1_name
                 assert bucket1_entity.status.name == new_bucket1_name
-            finally:
-                await server.close()
+                assert len(b1_object1_entity.status.references) == 1
+                assert b1_object1_entity.status.references[0].bucket_name == new_bucket1_name
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
-    async def test_bucket_add_object_intent(self):
+    async def test_object_add_bucket_intent(self):
         papiea_test.logger.debug("Running test to add object to bucket and validate intent resolver")
 
         try:
@@ -717,8 +650,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -735,14 +668,7 @@ class TestEntityOperations:
 
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
-                assert len(bucket1_entity.spec.objects) == 1
-                assert bucket1_entity.spec.objects[0].name == object1_name
-                assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 retries = 10
                 for _ in range(1, retries+1):
@@ -751,14 +677,21 @@ class TestEntityOperations:
                         break
                     time.sleep(5)
 
+                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
+                    b1_object1_entity = await object_entity_client.get(object_ref)
+
                 assert len(bucket1_entity.status.objects) == 1
                 assert bucket1_entity.status.objects[0].name == object1_name
                 assert bucket1_entity.status.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
-            finally:
-                await server.close()
+                assert len(b1_object1_entity.status.references) == 1
+                assert b1_object1_entity.status.references[0].bucket_name == bucket1_name
+                assert b1_object1_entity.status.references[0].object_name == object1_name
+                assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
-    async def test_bucket_remove_object_intent(self):
+    async def test_object_remove_bucket_intent(self):
         papiea_test.logger.debug("Running test to remove object from bucket and validate intent resolver")
 
         try:
@@ -767,8 +700,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -785,14 +718,7 @@ class TestEntityOperations:
 
                 bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
-                assert len(bucket1_entity.spec.objects) == 1
-                assert bucket1_entity.spec.objects[0].name == object1_name
-                assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                 assert b1_object1_entity.spec.content == ""
-                assert len(b1_object1_entity.spec.references) == 1
-                assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                assert b1_object1_entity.spec.references[0].object_name == object1_name
-                assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 retries = 10
                 for _ in range(1, retries+1):
@@ -801,19 +727,22 @@ class TestEntityOperations:
                         break
                     time.sleep(5)
 
+                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
+                    b1_object1_entity = await object_entity_client.get(object_ref)
+
                 assert len(bucket1_entity.status.objects) == 1
                 assert bucket1_entity.status.objects[0].name == object1_name
                 assert bucket1_entity.status.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
+                assert len(b1_object1_entity.status.references) == 1
+                assert b1_object1_entity.status.references[0].bucket_name == bucket1_name
+                assert b1_object1_entity.status.references[0].object_name == object1_name
+                assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                 object_input = AttributeDict(
                     object_name=object1_name,
                     object_uuid=b1_object1_entity.metadata.uuid
                 )
-                await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
-
-                bucket1_entity = await bucket_entity_client.get(bucket_ref)
-
-                assert len(bucket1_entity.spec.objects) == 0
+                bucket_ref = await bucket_entity_client.invoke_procedure("unlink_object", bucket1_entity.metadata, object_input)
 
                 for _ in range(1, retries+1):
                     bucket1_entity = await bucket_entity_client.get(bucket_ref)
@@ -821,12 +750,17 @@ class TestEntityOperations:
                         break
                     time.sleep(5)
 
+                async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
+                    object_list = await object_entity_client.get_all()
+
+                assert len(bucket1_entity.spec.objects) == 0
                 assert len(bucket1_entity.status.objects) == 0
-            finally:
-                await server.close()
+                assert len(object_list) == 0
+        finally:
+            await server.close()
 
     @pytest.mark.asyncio
-    async def test_object_change_content_intent(self):
+    async def test_object_content_change_intent(self):
         papiea_test.logger.debug("Running test to change object content and validate intent resolver")
 
         try:
@@ -835,8 +769,8 @@ class TestEntityOperations:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
 
-        async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
-            try:
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
                 bucket1_name = "test-bucket1"
 
                 bucket_ref = await bucket_entity_client.invoke_kind_procedure("ensure_bucket_exists", bucket1_name)
@@ -853,19 +787,11 @@ class TestEntityOperations:
 
                     bucket1_entity = await bucket_entity_client.get(bucket_ref)
 
-                    assert len(bucket1_entity.spec.objects) == 1
-                    assert bucket1_entity.spec.objects[0].name == object1_name
-                    assert bucket1_entity.spec.objects[0].reference.uuid == b1_object1_entity.metadata.uuid
                     assert b1_object1_entity.spec.content == ""
-                    assert len(b1_object1_entity.spec.references) == 1
-                    assert b1_object1_entity.spec.references[0].bucket_name == bucket1_name
-                    assert b1_object1_entity.spec.references[0].object_name == object1_name
-                    assert b1_object1_entity.spec.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
 
                     obj_content = "test-content"
                     spec = Spec(
-                        content=obj_content,
-                        references=b1_object1_entity.spec.references
+                        content=obj_content
                     )
                     watcher_ref = await object_entity_client.update(b1_object1_entity.metadata, spec)
                     op_status = await utils.wait_for_diff_resolver(watcher_ref.watcher)
@@ -875,8 +801,12 @@ class TestEntityOperations:
                         assert b1_object1_entity.spec.content == obj_content
                         assert b1_object1_entity.status.content == obj_content
                         assert b1_object1_entity.status.size == len(obj_content)
+                        assert len(b1_object1_entity.status.references) == 1
+                        assert b1_object1_entity.status.references[0].bucket_name == bucket1_name
+                        assert b1_object1_entity.status.references[0].object_name == object1_name
+                        assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
                     else:
                         papiea_test.logger.debug("Intent resolver operation failed")
                         assert False
-            finally:
-                await server.close()
+        finally:
+            await server.close()
