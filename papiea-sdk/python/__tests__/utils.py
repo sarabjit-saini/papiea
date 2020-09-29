@@ -1,3 +1,7 @@
+import json
+import time
+
+from aiohttp import ClientSession
 from yaml import Loader as YamlLoader
 from yaml import load as load_yaml
 
@@ -5,10 +9,10 @@ import __tests__ as papiea_test
 import __tests__.procedure_handlers as procedure_handlers
 
 from papiea.client import EntityCRUD
-from papiea.core import AttributeDict, Key, ProcedureDescription, S2S_Key
+from papiea.core import AttributeDict, IntentfulStatus, Key, ProcedureDescription, S2S_Key
 from papiea.python_sdk import ProviderSdk, ProviderServerManager
 from papiea.python_sdk_exceptions import ApiException, PapieaBaseException, SecurityApiError
-from papiea.utils import ref_type
+from papiea.utils import json_loads_attrs, ref_type
 
 def load_yaml_from_file(filename):
     with open(filename) as f:
@@ -19,6 +23,7 @@ def setup_kinds():
     global bucket_yaml, object_yaml
     global metadata_extension
     global ensure_bucket_exists_takes, ensure_bucket_exists_returns
+    global change_bucket_name_takes, change_bucket_name_returns
     global create_object_takes, create_object_returns
     global link_object_takes, link_object_returns
     global unlink_object_takes, unlink_object_returns
@@ -41,6 +46,13 @@ def setup_kinds():
     ensure_bucket_exists_returns = AttributeDict(
         EnsireBucketExistsOutput=ref_type(papiea_test.BUCKET_KIND, "Reference of the bucket created/found")
     )
+
+    change_bucket_name_takes = load_yaml_from_file("./procedures/change_bucket_name.yml")
+    change_bucket_name_returns = AttributeDict(
+        ChangeBucketNameOutput=ref_type(papiea_test.BUCKET_KIND, "Reference of the bucket with new name"),
+    )
+    change_bucket_name_returns.get("ChangeBucketNameOutput").get("properties") \
+        ["message"] = AttributeDict(type="string", description="Error message")
 
     create_object_takes = load_yaml_from_file("./procedures/create_object_input.yml")
     create_object_returns = AttributeDict(
@@ -177,7 +189,6 @@ async def setup_and_register_sdk() -> ProviderServerManager:
         bucket.on("name", procedure_handlers.bucket_name_handler)
         bucket.on("objects.+{name}", procedure_handlers.on_object_added)
         bucket.on("objects.-{name}", procedure_handlers.on_object_removed)
-        bucket.on("objects.{name}", procedure_handlers.on_object_updated)
 
         obj.on("content", procedure_handlers.object_content_handler)
 
@@ -190,6 +201,17 @@ async def setup_and_register_sdk() -> ProviderServerManager:
             "ensure_bucket_exists",
             ensure_bucket_exists_procedure_description,
             procedure_handlers.ensure_bucket_exists_handler
+        )
+
+        change_bucket_name_procedure_description = ProcedureDescription(
+            input_schema=change_bucket_name_takes,
+            output_schema=change_bucket_name_returns,
+            description="Description for change_bucket_name entity-level procedure"
+        )
+        bucket.entity_procedure(
+            "change_bucket_name",
+            change_bucket_name_procedure_description,
+            procedure_handlers.change_bucket_name_handler
         )
 
         create_object_procedure_description = ProcedureDescription(
@@ -248,3 +270,29 @@ async def setup_and_register_sdk() -> ProviderServerManager:
             raise Exception("Cleanup operation failed")
 
         return sdk.server
+
+async def get_intent_watcher(id: str, headers: dict = {}):
+    try:
+        async with ClientSession() as session:
+            async with session.get(
+                f"{ papiea_test.PAPIEA_URL }/services/intent_watcher/{ id }",
+                headers=headers
+            ) as resp:
+                res = await resp.text()
+                if res == "":
+                    return None
+                return json_loads_attrs(res)
+    except Exception as ex:
+        papiea_test.logger.debug("Failed to get intent watcher : " + str(ex))
+        return None
+
+async def wait_for_diff_resolver(watcher: AttributeDict, retries: int = 10) -> bool:
+    try:
+        for _ in range(1, retries+1):
+            watcher = await get_intent_watcher(watcher.uuid)
+            if watcher.status == IntentfulStatus.Completed_Successfully:
+                return True
+            time.sleep(5)
+    except:
+        return False
+    return False

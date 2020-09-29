@@ -42,6 +42,54 @@ async def ensure_bucket_exists_handler(ctx, input_bucket_name):
 
     return EntityReference(uuid="", kind="", message="Unable to create bucket entity")
 
+async def change_bucket_name_handler(ctx, entity_bucket, new_bucket_name):
+    # check if there's any bucket with the new name
+    # if found, return None/failure
+    # else update name and bucket entity
+    # fetch unique uuids for the objects in the bucket
+    # for each uuid, get the object references list
+    # iterate and update bucket name if bucket ref match is found
+    # update all such object entities
+
+    async with ctx.entity_client_for_user(utils.bucket_kind_dict) as entity_client:
+        try:
+            matched_bucket = await entity_client.filter(AttributeDict(spec=AttributeDict(name=new_bucket_name)))
+            if len(matched_bucket.results) == 0:
+
+                entity_bucket.spec.name = new_bucket_name
+                async with ctx.entity_client_for_user(utils.bucket_kind_dict) as entity_client:
+                    await entity_client.update(
+                        metadata=entity_bucket.metadata,
+                        spec=entity_bucket.spec
+                    )
+
+                object_uuid_set = set()
+                for obj in entity_bucket.spec.objects:
+                    object_uuid_set.add(obj.reference.uuid)
+
+                async with ctx.entity_client_for_user(utils.object_kind_dict) as entity_client:
+                    for object_uuid in object_uuid_set:
+                        entity_object = await entity_client.get(AttributeDict(uuid=object_uuid))
+                        for i in range(len(entity_object.spec.references)):
+                            if entity_object.spec.references[i].bucket_reference.uuid == entity_bucket.metadata.uuid:
+                                entity_object.spec.references[i].bucket_name = new_bucket_name
+
+                        await entity_client.update(
+                            metadata=entity_object.metadata,
+                            spec=entity_object.spec
+                        )
+
+                return EntityReference(
+                    uuid=entity_bucket.metadata.uuid,
+                    kind=entity_bucket.metadata.kind
+                )
+            else:
+                raise Exception("Bucket with new name already exists")
+        except Exception as ex:
+            raise Exception("Unable to change the bucket name: " + str(ex))
+
+    return EntityReference(uuid="", kind="", message="Unable to change name for the bucket entity")
+
 async def create_object_handler(ctx, entity_bucket, input_object_name):
     # check if object name already exists in entity.objects
     # if found, return None/failure
@@ -56,8 +104,6 @@ async def create_object_handler(ctx, entity_bucket, input_object_name):
             try:
                 entity_object = await entity_client.create(
                     Spec(content="",
-                        size=0,
-                        last_modified=str(datetime.now(timezone.utc)),
                         references=[AttributeDict(
                             bucket_name=entity_bucket.spec.name,
                             object_name=input_object_name,
@@ -211,9 +257,6 @@ async def unlink_object_handler(ctx, entity_bucket, input_object):
     return EntityReference(uuid="", kind="", message="Unable to unlink object entity")
 
 async def bucket_constructor(ctx, entity):
-  """
-  Construct a bucket entity
-  """
   papiea_test.logger.debug("Inside bucket constructor")
   status = AttributeDict(
       name=entity.spec.name,
@@ -222,29 +265,41 @@ async def bucket_constructor(ctx, entity):
   await ctx.update_status(entity.metadata, status)
 
 async def object_constructor(ctx, entity):
-  """
-  Construct a object entity
-  """
   papiea_test.logger.debug("Inside object constructor")
   status = AttributeDict(
       content=entity.spec.content,
-      size=entity.spec.size,
-      last_modified=entity.spec.last_modified,
-      references=entity.spec.references
+      size=0,
+      last_modified=str(datetime.now(timezone.utc)),
+      references=list()
   )
   await ctx.update_status(entity.metadata, status)
 
 async def bucket_name_handler(ctx, entity, diff):
-    papiea_test.logger.debug("Bucket name handler invoked")
+    papiea_test.logger.debug("Bucket name change handler invoked")
+    await ctx.update_status(entity.metadata, entity.spec)
 
 async def object_content_handler(ctx, entity, diff):
     papiea_test.logger.debug("Object content handler invoked")
+    status = AttributeDict(
+        content=entity.spec.content,
+        size=len(entity.spec.content),
+        last_modified=str(datetime.now(timezone.utc)),
+        references=entity.status.references
+    )
+    await ctx.update_status(entity.metadata, status)
 
 async def on_object_added(ctx, entity, diff):
     papiea_test.logger.debug("Object add handler invoked")
+    status = AttributeDict(
+        name=entity.status.name,
+        objects=entity.spec.objects
+    )
+    await ctx.update_status(entity.metadata, status)
 
 async def on_object_removed(ctx, entity, diff):
     papiea_test.logger.debug("Object remove handler invoked")
-
-async def on_object_updated(ctx, entity, diff):
-    papiea_test.logger.debug("Object update handler invoked")
+    status = AttributeDict(
+        name=entity.status.name,
+        objects=entity.spec.objects
+    )
+    await ctx.update_status(entity.metadata, status)
