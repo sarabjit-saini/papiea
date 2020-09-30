@@ -199,20 +199,6 @@ async def bucket_create_handler(ctx, entity_bucket):
     except Exception as ex:
         raise Exception("Unable to execute bucket create intent handler: " + str(ex))
 
-async def object_create_handler(ctx, entity_object):
-    try:
-        papiea_test.logger.debug("Executing object create intent handler...")
-
-        status = AttributeDict(
-            content=entity_object.spec.content,
-            size=0,
-            last_modified=str(datetime.now(timezone.utc)),
-            references=list()
-        )
-        await ctx.update_status(entity_object.metadata, status)
-    except Exception as ex:
-        raise Exception("Unable to execute object create intent handler: " + str(ex))
-
 async def bucket_name_handler(ctx, entity_bucket, diff):
     # fetch unique uuids for the objects in the bucket
     # for each uuid, get the object references list
@@ -240,20 +226,6 @@ async def bucket_name_handler(ctx, entity_bucket, diff):
         await ctx.update_status(entity_bucket.metadata, entity_bucket.status)
     except Exception as ex:
         raise Exception("Unable to execute bucket name change intent handler: " + str(ex))
-
-async def object_content_handler(ctx, entity_object, diff):
-    try:
-        papiea_test.logger.debug("Executing object content change intent handler...")
-
-        status = AttributeDict(
-            content=entity_object.spec.content,
-            size=len(entity_object.spec.content),
-            last_modified=str(datetime.now(timezone.utc)),
-            references=entity_object.status.references
-        )
-        await ctx.update_status(entity_object.metadata, status)
-    except Exception as ex:
-        raise Exception("Unable to execute object content change intent handler: " + str(ex))
 
 async def on_object_added(ctx, entity_bucket, diff):
     try:
@@ -299,3 +271,31 @@ async def on_object_removed(ctx, entity_bucket, diff):
         await ctx.update_status(entity_bucket.metadata, entity_bucket.status)
     except Exception as ex:
         raise Exception("Unable to execute object remove intent handler: " + str(ex))
+
+async def object_create_handler(ctx, entity_object):
+    try:
+        papiea_test.logger.debug("Executing object create intent handler...")
+
+        status = AttributeDict(
+            content=entity_object.spec.content,
+            size=len(entity_object.spec.content),
+            last_modified=str(datetime.now(timezone.utc)),
+            references=list()
+        )
+        await ctx.update_status(entity_object.metadata, status)
+    except Exception as ex:
+        raise Exception("Unable to execute object create intent handler: " + str(ex))
+
+async def object_content_handler(ctx, entity_object, diff):
+    try:
+        papiea_test.logger.debug("Executing object content change intent handler...")
+
+        status = AttributeDict(
+            content=entity_object.spec.content,
+            size=len(entity_object.spec.content),
+            last_modified=str(datetime.now(timezone.utc)),
+            references=entity_object.status.references
+        )
+        await ctx.update_status(entity_object.metadata, status)
+    except Exception as ex:
+        raise Exception("Unable to execute object content change intent handler: " + str(ex))

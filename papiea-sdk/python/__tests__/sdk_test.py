@@ -571,6 +571,36 @@ class TestEntityOperations:
             await server.close()
 
     @pytest.mark.asyncio
+    async def test_bucket_create_intent(self):
+        papiea_test.logger.debug("Running test to create bucket and validate intent resolver")
+
+        try:
+            server = await utils.setup_and_register_sdk()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
+            return
+
+        try:
+            async with papiea_test.get_client(papiea_test.BUCKET_KIND) as bucket_entity_client:
+                bucket1_name = "test-bucket1"
+
+                bucket_ref = await bucket_entity_client.create(
+                    spec=Spec(name=bucket1_name, objects=list()),
+                    metadata_extension={
+                        "owner": "nutanix"
+                    }
+                )
+
+                bucket_entity = await bucket_entity_client.get(bucket_ref.metadata)
+
+                assert bucket_entity.spec.name == bucket1_name
+                assert len(bucket_entity.status.objects) == 0
+                assert bucket_entity.spec.name == bucket1_name
+                assert len(bucket_entity.status.objects) == 0
+        finally:
+            await server.close()
+
+    @pytest.mark.asyncio
     async def test_bucket_name_change_intent(self):
         papiea_test.logger.debug("Running test to change bucket name and validate intent resolver")
 
@@ -756,6 +786,35 @@ class TestEntityOperations:
                 assert len(bucket1_entity.spec.objects) == 0
                 assert len(bucket1_entity.status.objects) == 0
                 assert len(object_list) == 0
+        finally:
+            await server.close()
+
+    @pytest.mark.asyncio
+    async def test_object_create_intent(self):
+        papiea_test.logger.debug("Running test to create object and validate intent resolver")
+
+        try:
+            server = await utils.setup_and_register_sdk()
+        except Exception as ex:
+            papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
+            return
+
+        try:
+            async with papiea_test.get_client(papiea_test.OBJECT_KIND) as object_entity_client:
+
+                object_ref = await object_entity_client.create(
+                    spec=Spec(content="test"),
+                    metadata_extension={
+                        "owner": "nutanix"
+                    }
+                )
+
+                object_entity = await object_entity_client.get(object_ref.metadata)
+
+                assert object_entity.spec.content == "test"
+                assert object_entity.status.content == "test"
+                assert object_entity.status.size == 4
+                assert len(object_entity.status.references) == 0
         finally:
             await server.close()
 
