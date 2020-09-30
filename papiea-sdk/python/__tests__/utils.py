@@ -9,8 +9,8 @@ import __tests__ as papiea_test
 import __tests__.procedure_handlers as procedure_handlers
 
 from papiea.client import EntityCRUD
-from papiea.core import AttributeDict, IntentfulStatus, Key, ProcedureDescription, S2S_Key
-from papiea.python_sdk import ProviderSdk, ProviderServerManager
+from papiea.core import AttributeDict, IntentWatcher, IntentfulStatus, Key, ProcedureDescription, S2S_Key
+from papiea.python_sdk import IntentWatcherApi, ProviderSdk, ProviderServerManager
 from papiea.python_sdk_exceptions import ApiException, PapieaBaseException, SecurityApiError
 from papiea.utils import json_loads_attrs, ref_type
 
@@ -157,6 +157,18 @@ async def print_kinds_data():
             papiea_test.logger.debug("Failed to fetch the objects")
             pass
 
+async def wait_for_diff_resolver(watcher: AttributeDict, retries: int = 10) -> bool:
+    try:
+        watcher_api = IntentWatcherApi(papiea_url=papiea_test.PAPIEA_URL, s2skey=papiea_test.PAPIEA_ADMIN_S2S_KEY, logger=papiea_test.logger)
+        for _ in range(1, retries+1):
+            watcher = await watcher_api.get_intent_watcher(watcher.uuid)
+            if watcher.status == IntentfulStatus.Completed_Successfully:
+                return True
+            time.sleep(5)
+    except:
+        return False
+    return False
+
 async def setup_and_register_sdk() -> ProviderServerManager:
 
     setup_kinds()
@@ -270,29 +282,3 @@ async def setup_and_register_sdk() -> ProviderServerManager:
             raise Exception("Cleanup operation failed")
 
         return sdk.server
-
-async def get_intent_watcher(id: str, headers: dict = {}):
-    try:
-        async with ClientSession() as session:
-            async with session.get(
-                f"{ papiea_test.PAPIEA_URL }/services/intent_watcher/{ id }",
-                headers=headers
-            ) as resp:
-                res = await resp.text()
-                if res == "":
-                    return None
-                return json_loads_attrs(res)
-    except Exception as ex:
-        papiea_test.logger.debug("Failed to get intent watcher : " + str(ex))
-        return None
-
-async def wait_for_diff_resolver(watcher: AttributeDict, retries: int = 10) -> bool:
-    try:
-        for _ in range(1, retries+1):
-            watcher = await get_intent_watcher(watcher.uuid)
-            if watcher.status == IntentfulStatus.Completed_Successfully:
-                return True
-            time.sleep(5)
-    except:
-        return False
-    return False
