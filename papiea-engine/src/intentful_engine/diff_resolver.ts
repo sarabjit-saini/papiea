@@ -1,8 +1,8 @@
 // [[file:~/work/papiea-js/Papiea-design.org::*/src/intentful_engine/task_manager_interface.ts][/src/intentful_engine/task_manager_interface.ts:1]]
-import { getRandomInt, timeout } from "../utils/utils"
+import { calculateBackoff, getRandomInt, timeout } from "../utils/utils"
 import { Spec_DB } from "../databases/spec_db_interface"
 import { Status_DB } from "../databases/status_db_interface"
-import { create_entry, Delay, EntryReference, Watchlist } from "./watchlist"
+import { create_entry, Backoff, EntryReference, Watchlist, Delay } from "./watchlist"
 import { Watchlist_DB } from "../databases/watchlist_db_interface";
 import { Differ, Diff, Metadata, Spec, Status, Kind, Provider } from "papiea-core";
 import { Provider_DB } from "../databases/provider_db_interface";
@@ -32,10 +32,12 @@ export class DiffResolver {
     private intentfulContext: IntentfulContext;
     private logger: Logger;
     private batchSize: number;
+    private static MAXIMUM_BACKOFF = 100
+    private entropyFn: (diff_delay?: number) => number
 
     onIntentfulHandlerFail: Handler<(entity: EntryReference, error_msg?: string) => Promise<void>>
 
-    constructor(watchlist: Watchlist, watchlistDb: Watchlist_DB, specDb: Spec_DB, statusDb: Status_DB, providerDb: Provider_DB, differ: Differ, intentfulContext: IntentfulContext, logger: Logger, batchSize: number) {
+    constructor(watchlist: Watchlist, watchlistDb: Watchlist_DB, specDb: Spec_DB, statusDb: Status_DB, providerDb: Provider_DB, differ: Differ, intentfulContext: IntentfulContext, logger: Logger, batchSize: number, entropyFn: (diff_delay?: number) => number) {
         this.specDb = specDb
         this.statusDb = statusDb
         this.watchlistDb = watchlistDb
@@ -46,6 +48,7 @@ export class DiffResolver {
         this.logger = logger
         this.batchSize = batchSize
         this.onIntentfulHandlerFail = new Handler()
+        this.entropyFn = entropyFn
     }
 
     public async run(delay: number) {
@@ -75,6 +78,28 @@ export class DiffResolver {
         }
     }
 
+    private createDiffBackoff(kind: Kind, delay: Delay | null | undefined, retries: number = 0): Backoff {
+        if (delay !== undefined && delay !== null) {
+            return {
+                delay,
+                retries
+            }
+        } else {
+            return {
+                delay: {
+                    delay_seconds: calculateBackoff(retries, DiffResolver.MAXIMUM_BACKOFF, this.entropyFn(kind.diff_delay)),
+                    delay_set_time: new Date()
+                },
+                retries
+            }
+        }
+    }
+
+    private incrementDiffBackoff(backoff: Backoff, kind: Kind): Backoff {
+        const retries = backoff.retries + 1
+        return this.createDiffBackoff(kind, null, retries)
+    }
+
     private async rediff(entry_reference: EntryReference): Promise<RediffResult | null> {
         try {
             const [metadata, spec] = await this.specDb.get_spec(entry_reference.entity_reference)
@@ -91,8 +116,7 @@ export class DiffResolver {
         }
     }
 
-    private async launchOperation({diff, metadata, provider, kind, spec, status}: DiffWithContext): Promise<[Diff, Delay]> {
-        let delay_time: number | undefined = undefined
+    private async launchOperation({diff, metadata, provider, kind, spec, status}: DiffWithContext): Promise<Delay | null> {
         this.logger.debug("launchOperation", diff.intentful_signature.procedure_callback,
             { metadata: metadata,
                 spec: spec,
@@ -107,15 +131,13 @@ export class DiffResolver {
         })
         if (result.data !== null && result.data !== undefined && result.data.delay_secs !== undefined
             && result.data.delay_secs !== null && !Number.isNaN(result.data.delay_secs)) {
-            delay_time = result.data.delay_secs
+            return {
+                delay_seconds: result.data.delay_secs,
+                delay_set_time: new Date()
+            }
+        } else {
+            return null
         }
-        const delay = {
-            delay_seconds: delay_time ?? kind.diff_delay ?? getRandomInt(10, 20),
-            delaySetTime: new Date()
-        }
-        // This should be a concrete address of a handling process
-        diff.handler_url = `${diff.intentful_signature.base_callback}/healthcheck`
-        return [diff, delay]
     }
 
     private async checkHealthy(diff: Diff): Promise<boolean> {
@@ -139,12 +161,12 @@ export class DiffResolver {
             if (!entries.hasOwnProperty(key)) {
                 continue
             }
-            let [entry_reference, current_diff, current_delay] = entries[key]
+            let [entry_reference, current_diff, current_backoff] = entries[key]
             this.logger.debug(`Diff engine processing ${entry_reference.provider_reference.provider_prefix}/${entry_reference.provider_reference.provider_version}/${entry_reference.entity_reference.kind} entity with uuid: ${entry_reference.entity_reference.uuid}`)
             let rediff: RediffResult | null = null
-            if (current_diff && current_delay) {
+            if (current_diff && current_backoff) {
                 // Delay for rediffing
-                if ((new Date().getTime() - current_delay.delaySetTime.getTime()) / 1000 > current_delay.delay_seconds) {
+                if ((new Date().getTime() - current_backoff.delay.delay_set_time.getTime()) / 1000 > current_backoff.delay.delay_seconds) {
                     rediff = await this.rediff(entry_reference)
                     if (!rediff) {
                         await this.removeFromWatchlist(entry_reference)
@@ -158,15 +180,12 @@ export class DiffResolver {
                                 continue
                             }
                             this.logger.info(`Starting to retry resolving diff for entity with uuid: ${rediff.metadata!.uuid}`)
-                            const [, delay] = await this.launchOperation({diff: rediff.diffs[diff_index], ...rediff})
-                            entries[key][2] = delay
+                            const delay = await this.launchOperation({diff: rediff.diffs[diff_index], ...rediff})
+                            entries[key][2] = this.createDiffBackoff(rediff.kind, delay)
                             continue
                         } catch (e) {
                             this.logger.debug(`Couldn't invoke retry handler for entity with uuid ${rediff.metadata!.uuid}: ${e}`)
-                            entries[key][2] = {
-                                delay_seconds: getRandomInt(10, 20),
-                                delaySetTime: new Date()
-                            }
+                            entries[key][2] = this.incrementDiffBackoff(entries[key][2]!, rediff.kind)
                             const error_msg = e?.response?.data?.message
                             await this.onIntentfulHandlerFail.call(entry_reference, error_msg)
                             continue
@@ -207,7 +226,7 @@ export class DiffResolver {
         return this.batchSize
     }
 
-    private async startNewDiffResolution(entry_reference: EntryReference, rediff: RediffResult): Promise<null | [Diff, Delay]> {
+    private async startNewDiffResolution(entry_reference: EntryReference, rediff: RediffResult): Promise<null | [Diff, Backoff]> {
         const {diffs, metadata, provider, kind} = rediff
         let next_diff: Diff
         const diff_selection_strategy = this.intentfulContext.getDiffSelectionStrategy(kind!)
@@ -217,22 +236,18 @@ export class DiffResolver {
             this.logger.debug(`Entity with uuid ${metadata!.uuid}: ${e}`)
             return null
         }
+        next_diff.handler_url = `${next_diff.intentful_signature.base_callback}/healthcheck`
         try {
-            const [executing_diff, execution_delay] = await this.launchOperation({diff: next_diff, ...rediff})
+            const delay = await this.launchOperation({diff: next_diff, ...rediff})
             this.logger.info(`Starting to resolve diff for ${provider.prefix}/${provider.version}/${kind.name} entity with uuid: ${metadata!.uuid}`)
-            return [executing_diff, execution_delay]
+            const backoff = this.createDiffBackoff(kind, delay)
+            return [next_diff, backoff]
         } catch (e) {
             this.logger.debug(`Couldn't invoke handler for entity with uuid ${metadata!.uuid}: ${e}`)
-            const delay = {
-                delay_seconds: getRandomInt(10, 20),
-                delaySetTime: new Date()
-            }
-            const diff = next_diff
-            // This should be a concrete address of a handling process
-            diff!.handler_url = `${next_diff.intentful_signature.base_callback}/healthcheck`
+            const backoff = this.createDiffBackoff(kind, null)
             const error_msg = e?.response?.data?.message
             await this.onIntentfulHandlerFail.call(entry_reference, error_msg)
-            return [diff, delay]
+            return [next_diff, backoff]
         }
     }
 

@@ -1,6 +1,6 @@
 import { ProviderBuilder } from "../test_data_factory";
 import axios from "axios";
-import { Metadata, Spec } from "papiea-core";
+import { Metadata, Spec } from "papiea-core"
 import uuid = require("uuid")
 
 declare var process: {
@@ -82,6 +82,69 @@ describe("Entity API with metadata extension tests", () => {
             expect(res.status).toEqual(400);
             expect(res.data.error.errors.length).toEqual(1);
             expect(res.data.error.errors[0].message).toEqual('Metadata extension is not specified')
+
+        }
+    });
+
+    test("Create entity with empty object as extension", async () => {
+        expect.hasAssertions();
+        try {
+            await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
+                spec: {
+                    x: 100,
+                    y: 11
+                },
+                metadata: {
+                    extension: {}
+                }
+            });
+        } catch (err) {
+            const res = err.response;
+            expect(res.status).toEqual(400);
+            expect(res.data.error.errors.length).toEqual(1);
+            expect(res.data.error.errors[0].message).toEqual('Metadata extension is not specified')
+
+        }
+    });
+
+    test("Create entity with empty string as extension", async () => {
+        expect.hasAssertions();
+        try {
+            await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
+                spec: {
+                    x: 100,
+                    y: 11
+                },
+                metadata: {
+                    extension: ""
+                }
+            });
+        } catch (err) {
+            const res = err.response;
+            expect(res.status).toEqual(400);
+            expect(res.data.error.errors.length).toEqual(1);
+            expect(res.data.error.errors[0].message).toEqual('Metadata extension should be an object')
+
+        }
+    });
+
+    test("Create entity with zero as extension", async () => {
+        expect.hasAssertions();
+        try {
+            await entityApi.post(`/${providerPrefix}/${providerVersion}/${kind_name}`, {
+                spec: {
+                    x: 100,
+                    y: 11
+                },
+                metadata: {
+                    extension: 0
+                }
+            });
+        } catch (err) {
+            const res = err.response;
+            expect(res.status).toEqual(400);
+            expect(res.data.error.errors.length).toEqual(1);
+            expect(res.data.error.errors[0].message).toEqual('Metadata extension should be an object')
 
         }
     });

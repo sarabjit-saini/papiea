@@ -6,6 +6,7 @@ import { BasicDiffer } from "./intentful_core/differ_impl";
 import { IntentfulContext } from "./intentful_core/intentful_context";
 import { IntentResolver } from "./intentful_engine/intent_resolver";
 import { IntentfulListenerMongo } from "./intentful_engine/intentful_listener_mongo_simple";
+import { getEntropyFn } from "./utils/utils"
 
 declare var process: {
     env: {
@@ -28,6 +29,7 @@ const mongoDb = process.env.MONGO_DB || 'papiea';
 const loggingLevel = logLevelFromString(process.env.LOGGING_LEVEL) ?? 'debug';
 const batchSize = process.env.RANDOM_ENTITY_BATCH_SIZE ?? 5
 const deletedWatcherPersists = process.env.DELETED_WATCHER_PERSIST_SECONDS ?? 100
+const papieaDebug = process.env.PAPIEA_DEBUG === "true"
 
 async function setUpDiffResolver() {
     const logger = LoggerFactory.makeLogger({level: loggingLevel});
@@ -47,8 +49,9 @@ async function setUpDiffResolver() {
 
     const intentfulListenerMongo = new IntentfulListenerMongo(statusDb, specDb, watchlist)
     intentfulListenerMongo.run(250)
+    const entropyFunction = getEntropyFn(papieaDebug)
 
-    const diffResolver = new DiffResolver(watchlist, watchlistDb, specDb, statusDb, providerDb, differ, intentfulContext, logger, batchSize)
+    const diffResolver = new DiffResolver(watchlist, watchlistDb, specDb, statusDb, providerDb, differ, intentfulContext, logger, batchSize, entropyFunction)
 
     const intentResolver = new IntentResolver(specDb, statusDb, intentWatcherDB, providerDb, intentfulListenerMongo, differ, diffResolver, watchlist, logger)
 

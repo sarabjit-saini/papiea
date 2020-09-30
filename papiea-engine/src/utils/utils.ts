@@ -124,3 +124,25 @@ export function deepMerge(target: any, ...sources: any[]): any {
 
     return deepMerge(target, ...sources);
 }
+
+export function calculateBackoff(retries: number, maximumBackoff: number, entropy: number) {
+    return Math.min(Math.pow(2, retries) + entropy, maximumBackoff)
+}
+
+export function getEntropyFn(papieaDebug: boolean) {
+    let min: number
+    let max: number
+    if (papieaDebug) {
+        min = 1
+        max = 2
+    } else {
+        min = 10
+        max = 20
+    }
+    return (diff_delay?: number) => {
+        if (diff_delay !== undefined && diff_delay !== null) {
+            return diff_delay + getRandomInt(1, 10)
+        }
+        return getRandomInt(min, max)
+    }
+}

@@ -16,8 +16,13 @@ const stringifyEntryRef = (r: EntryReference) => [
 ].join('/')
 
 export interface Delay {
-    delaySetTime: Date
+    delay_set_time: Date
     delay_seconds: number
+}
+
+export interface Backoff {
+    delay: Delay
+    retries: number
 }
 
 export function create_entry(metadata: Metadata): EntryReference {
@@ -35,7 +40,7 @@ export function create_entry(metadata: Metadata): EntryReference {
 
 export type SerializedWatchlist = {[key: string]: Watch}
 export type WatchlistEntries = Watch[]
-type Watch = [EntryReference, Diff | undefined, Delay | undefined]
+type Watch = [EntryReference, Diff | undefined, Backoff | undefined]
 
 export class Watchlist {
     private _entries: SerializedWatchlist

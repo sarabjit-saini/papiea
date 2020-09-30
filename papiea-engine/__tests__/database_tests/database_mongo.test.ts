@@ -563,10 +563,10 @@ describe("MongoDb tests", () => {
                 kind: "test_kind"
             }
         }
-        watchlist.set([entry_ref, undefined, { delay_seconds: 120, delaySetTime: new Date() }])
+        watchlist.set([entry_ref, undefined, {delay: {delay_seconds: 120, delay_set_time: new Date()}, retries: 0}])
         await watchlistDb.update_watchlist(watchlist)
         const watchlistUpdated = await watchlistDb.get_watchlist()
-        expect(watchlistUpdated.get(entry_ref)![2]!.delay_seconds).toBe(120)
+        expect(watchlistUpdated.get(entry_ref)![2]!.delay!.delay_seconds).toBe(120)
         await watchlistDb.update_watchlist(new Watchlist())
     });
 

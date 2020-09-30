@@ -1,5 +1,4 @@
-import { uuid4, Diff, Entity_Reference, IntentfulStatus, Metadata, Spec, IntentWatcher } from "papiea-core"
-import { UserAuthInfo } from "../auth/authn"
+import { Metadata, Spec, IntentWatcher } from "papiea-core"
 
 export class IntentWatcherMapper {
     public static toResponse(intentWatcher: IntentWatcher): Partial<IntentWatcher> {
