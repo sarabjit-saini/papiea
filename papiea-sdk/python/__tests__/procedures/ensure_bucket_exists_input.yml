@@ -1,4 +1,0 @@
-EnsureBucketExistsInput:
-    type: string
-    title: Input value of EnsureBucketExists function
-    description: Name of the bucket to be created/checked for existence

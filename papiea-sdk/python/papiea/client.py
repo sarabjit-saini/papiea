@@ -47,7 +47,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def get_all(self) -> List[Entity]:
         try:
@@ -58,7 +58,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def create(
         self, spec: Spec, metadata_extension: Optional[Any] = None
@@ -73,7 +73,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def create_with_meta(self, metadata: Metadata, spec: Spec) -> EntitySpec:
         try:
@@ -84,7 +84,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def update(self, metadata: Metadata, spec: Spec) -> EntitySpec:
         try:
@@ -95,7 +95,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def delete(self, entity_reference: EntityReference) -> None:
         try:
@@ -105,7 +105,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def filter(self, filter_obj: Any) -> FilterResults:
         try:
@@ -116,7 +116,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def filter_iter(self, filter_obj: Any) -> Callable[[Optional[int], Optional[int]], AsyncGenerator[Any, None]]:
         async def iter_func(batch_size: Optional[int] = None, offset: Optional[int] = None):
@@ -150,7 +150,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
     async def invoke_kind_procedure(self, procedure_name: str, input_: Any) -> Any:
         try:
@@ -161,7 +161,7 @@ class EntityCRUD(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise
 
 class ProviderClient(object):
     def __init__(
@@ -211,4 +211,4 @@ class ProviderClient(object):
         except ApiException as api_exception:
             raise Exception('Api exception: ' + api_exception.reason)
         except Exception as ex:
-            raise ex
+            raise

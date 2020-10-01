@@ -31,4 +31,4 @@ object:
                     object_name:
                         type: string
                         description: Name of the object which refers to this object
-                    
+                    # bucket reference added in python code

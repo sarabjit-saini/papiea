@@ -61,12 +61,6 @@ export interface SecurityApi {
  deactivate_key(key_to_deactivate:Secret):Promise<string>
 }
 
-export interface IntentWatcherImpl {
-  get_intent_watcher(id: string): Promise<IntentWatcher>
-  list_intent_watcher(): Promise<IntentWatcher[]>
-  filter_intent_watcher(filter: any): Promise<IntentWatcher[]>
-}
-
 // [[file:~/work/papiea-js/Papiea-design.org::#h-Providers-SDK-518][provider_sdk_ts_intentful_ctx_interface]]
 export interface IntentfulCtx_Interface {
     update_status(entity_reference: Entity_Reference, status: Status):Promise<boolean>

@@ -18,3 +18,4 @@ bucket:
                     name:
                         type: string
                         description: Name of the object within the bucket
+                    # object reference added in python code

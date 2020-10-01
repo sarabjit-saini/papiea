@@ -2,7 +2,7 @@ import { DescriptionBuilder, DescriptionType, } from "../../../../papiea-engine/
 import axios from "axios"
 import { timeout } from "../../../../papiea-engine/src/utils/utils"
 import { IntentfulBehaviour, IntentfulStatus, Metadata, Version } from "papiea-core"
-import { ProviderSdk, IntentWatcherApi } from "../../src/provider_sdk/typescript_sdk";
+import { ProviderSdk } from "../../src/provider_sdk/typescript_sdk";
 import uuid = require("uuid");
 
 declare var process: {
@@ -118,11 +118,10 @@ describe("Intentful Workflow tests", () => {
             })
             let retries = 10
             try {
-                let watcherApi = new IntentWatcherApi(papieaUrl, adminKey)
                 for (let i = 1; i <= retries; i++) {
-                    const intent_watcher = await watcherApi.get_intent_watcher(watcher.uuid)
-                    if (intent_watcher.status === IntentfulStatus.Completed_Successfully) {
-                        expect(intent_watcher.status).toBe(IntentfulStatus.Completed_Successfully)
+                    const res = await entityApi.get(`/intent_watcher/${ watcher.uuid }`)
+                    if (res.data.status === IntentfulStatus.Completed_Successfully) {
+                        expect(res.data.status).toBe(IntentfulStatus.Completed_Successfully)
                         const result = await entityApi.get(`/${ sdk.provider.prefix }/${ sdk.provider.version }/${ kind_name }/${ metadata.uuid }`)
                         expect(result.data.status.x).toEqual(20)
                         return

@@ -1,4 +1,0 @@
-ChangeBucketNameInput:
-    type: string
-    title: Input value of ChangeBucketName function
-    description: New name of the bucket
