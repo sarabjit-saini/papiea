@@ -50,7 +50,7 @@ async def ensure_bucket_exists(ctx, input_bucket_name):
     except:
         raise
 
-    return EntityReference(uuid="", kind="", message="Unable to create bucket entity")
+    raise Exception("Unable to create bucket entity")
 
 change_bucket_name_takes = AttributeDict(
     ChangeBucketNameInput=AttributeDict(
@@ -92,7 +92,7 @@ async def change_bucket_name(ctx, entity_bucket, new_bucket_name):
     except:
         raise
 
-    return EntityReference(uuid="", kind="", message="Unable to change name for the bucket entity")
+    raise Exception("Unable to change name for the bucket entity")
 
 create_object_takes = AttributeDict(
     CreateObjectInput=AttributeDict(
@@ -150,7 +150,7 @@ async def create_object(ctx, entity_bucket, input_object_name):
     except:
         raise
 
-    return EntityReference(uuid="", kind="", message="Unable to create object entity")
+    raise Exception("Unable to create object entity")
 
 link_object_takes = AttributeDict(
     LinkObjectInput=AttributeDict(
@@ -213,7 +213,7 @@ async def link_object(ctx, entity_bucket, input_object):
     except:
         raise
 
-    return EntityReference(uuid="", kind="", message="Unable to link object entity")
+    raise Exception("Unable to link object entity")
 
 unlink_object_takes = AttributeDict(
     UnlinkObjectInput=AttributeDict(
@@ -257,7 +257,7 @@ async def unlink_object(ctx, entity_bucket, input_object_name):
     except:
         raise
 
-    return EntityReference(uuid="", kind="", message="Unable to unlink object entity")
+    raise Exception("Unable to unlink object entity")
 
 async def bucket_create_handler(ctx, entity_bucket):
     try:
