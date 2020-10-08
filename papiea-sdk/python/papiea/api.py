@@ -8,8 +8,15 @@ from multidict import CIMultiDict
 
 from papiea.python_sdk_exceptions import (
     ApiException,
-    PapieaBaseException,
-    check_response,
+    ConflictingEntityException,
+    EntityNotFoundException,
+    PermissionDeniedException,
+    ProcedureInvocationException,
+    UnauthorizedException,
+    ValidationException,
+    BadRequestException,
+    PapieaServerException,
+    check_response
 )
 from papiea.utils import json_loads_attrs
 
@@ -89,65 +96,30 @@ class ApiInstance(object):
                 res = await resp.text()
             return self.check_result(res)
 
-    async def post(self, prefix: str, data: dict, headers: dict = {}) -> Any:
+    async def make_request(self, method: str, prefix: str, data: dict, headers: dict):
         try:
-            return await self.call("post", prefix, data, headers)
-        except PapieaBaseException as papiea_exception:
-            raise papiea_exception
-        except ApiException as api_exception:
-            raise api_exception
-        except Exception as e:
+            return await self.call(method, prefix, data, headers)
+        except (ConflictingEntityException, EntityNotFoundException, PermissionDeniedException, ProcedureInvocationException, UnauthorizedException, ValidationException, BadRequestException, PapieaServerException, ApiException):
+            raise
+        except:
             self.logger.debug("RENEWING SESSION")
             await self.renew_session()
-            return await self.call("post", prefix, data, headers)
+            return await self.call(method, prefix, data, headers)
+
+    async def post(self, prefix: str, data: dict, headers: dict = {}) -> Any:
+        return await self.make_request("post", prefix, data, headers)
 
     async def put(self, prefix: str, data: dict, headers: dict = {}) -> Any:
-        try:
-            return await self.call("put", prefix, data, headers)
-        except PapieaBaseException as papiea_exception:
-            raise papiea_exception
-        except ApiException as api_exception:
-            raise api_exception
-        except Exception as e:
-            self.logger.debug("RENEWING SESSION")
-            await self.renew_session()
-            return await self.call("put", prefix, data, headers)
+        return await self.make_request("put", prefix, data, headers)
 
     async def patch(self, prefix: str, data: dict, headers: dict = {}) -> Any:
-        try:
-            return await self.call("patch", prefix, data, headers)
-        except PapieaBaseException as papiea_exception:
-            raise papiea_exception
-        except ApiException as api_exception:
-            raise api_exception
-        except Exception as e:
-            self.logger.debug("RENEWING SESSION")
-            await self.renew_session()
-            return await self.call("patch", prefix, data, headers)
+        return await self.make_request("patch", prefix, data, headers)
 
     async def get(self, prefix: str, headers: dict = {}) -> Any:
-        try:
-            return await self.call("get", prefix, {}, headers)
-        except PapieaBaseException as papiea_exception:
-            raise papiea_exception
-        except ApiException as api_exception:
-            raise api_exception
-        except Exception as e:
-            self.logger.debug("RENEWING SESSION")
-            await self.renew_session()
-            return await self.call("get", prefix, {}, headers)
+        return await self.make_request("get", prefix, {}, headers)
 
     async def delete(self, prefix: str, headers: dict = {}) -> Any:
-        try:
-            return await self.call("delete", prefix, {}, headers)
-        except PapieaBaseException as papiea_exception:
-            raise papiea_exception
-        except ApiException as api_exception:
-            raise api_exception
-        except Exception as e:
-            self.logger.debug("RENEWING SESSION")
-            await self.renew_session()
-            return await self.call("delete", prefix, {}, headers)
+        return await self.make_request("delete", prefix, {}, headers)
 
     async def close(self):
         await self.session.close()
