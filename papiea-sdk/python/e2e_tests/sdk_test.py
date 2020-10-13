@@ -486,7 +486,7 @@ class TestEntityOperations:
                 await bucket_entity_client.invoke_procedure("link_object", bucket1_entity.metadata, object_input)
         except Exception as ex:
             papiea_test.logger.debug("Failed to perform entity operation : " + str(ex))
-            assert str(ex) == "Entity with kind: object, uuid: shouldfailuuid not found"
+            assert str(ex) == "Entity shouldfailuuid not found"
         finally:
             await server.close()
 
