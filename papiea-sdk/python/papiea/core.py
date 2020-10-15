@@ -24,6 +24,7 @@ EntityReference = AttributeDict
 Spec = AttributeDict
 EntitySpec = AttributeDict
 Metadata = AttributeDict
+IntentWatcher = AttributeDict
 
 class Action(str):
     Read = "read"

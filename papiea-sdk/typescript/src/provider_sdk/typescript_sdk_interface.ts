@@ -5,7 +5,7 @@ import {
     LOG_LEVELS, LogLevel, LoggerOptions, Logger, LoggerFactory
 } from 'papiea-backend-utils';
 import { IncomingHttpHeaders } from "http";
-import { provider_client, ProviderClient } from "papiea-client";
+import { ProviderClient } from "papiea-client";
 
 // Re-exports from papiea-backend.
 export {LOG_LEVELS, LogLevel, LoggerOptions, Logger, LoggerFactory}

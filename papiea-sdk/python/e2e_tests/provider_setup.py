@@ -59,8 +59,7 @@ async def create_user_s2s_key(sdk: ProviderSdk):
     except SecurityApiError as err:
         raise SecurityApiError.from_error(err, str(err))
 
-async def setup_and_register_sdk() -> ProviderServerManager:
-
+async def setup_and_register_sdk() -> ProviderSdk:
     try:
         async with ProviderSdk.create_provider(
             papiea_test.PAPIEA_URL, papiea_test.PAPIEA_ADMIN_S2S_KEY, papiea_test.SERVER_CONFIG_HOST, papiea_test.SERVER_CONFIG_PORT, logger=papiea_test.logger
@@ -138,7 +137,7 @@ async def setup_and_register_sdk() -> ProviderServerManager:
             await sdk.register()
             papiea_test.USER_S2S_KEY = await create_user_s2s_key(sdk)
 
-            return sdk.server
+            return sdk
     except SecurityApiError as err:
             raise SecurityApiError.from_error(err, str(err))
     except:

@@ -37,6 +37,7 @@ jobs:
           command: |
             docker-compose exec papiea-engine npm run test-ci
             docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/typescript && npm test'
+            docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/python/e2e_tests && python3.8 -m pip install -r requirements.txt && python3.8 -m pytest -s --disable-pytest-warnings'
             docker cp papiea-engine:/code/papiea-engine/reports . || echo .
             docker cp papiea-engine:/code/papiea-engine/coverage . || echo .
             docker cp papiea-engine:/code/papiea-engine/src/logs . || echo .

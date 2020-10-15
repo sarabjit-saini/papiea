@@ -13,9 +13,9 @@ Please see [Papiea's design document](https://nutanix.github.io/papiea/Papiea-de
 
 | Component  | Version |
 | ------------- | ------------- |
-  | Engine (docker) | nutanix-docker.jfrog.io/papiea:0.7.8_1557 |
-  | Client/SDK (typescript)  | 0.7.8+1557 |
-  | Client/SDK (python)  | 0.7.8+1557 |
+  | Engine (docker) | nutanix-docker.jfrog.io/papiea:0.7.12_1613 |
+  | Client/SDK (typescript)  | 0.7.12+1613 |
+  | Client/SDK (python)  | 0.7.12+1613 |
 
 ## Build Instructions Papiea
 
@@ -82,14 +82,62 @@ Now you can use your `${PAPIEA_INSTANCE_PUBLIC_IP}:3333` as PAPIEA_URL in benchm
 
 ## Environment Papiea-Engine
 
-A set of these variables might be used to tweak the default papiea-engine configuration
+Papiea uses configuration file to apply settings. Sample config file is located in `papiea-engine/papiea-config.json`.
+The configuration parameters are following:
 
-* `MONGO_HOST` - mongo host (default `mongo`)
-* `MONGO_PORT` - mongo port (default `27017`)
-* `PAPIEA_PUBLIC_URL` - external papiea address (default `"http://localhost:3000"`)
-* `HOT_RELOAD` - use nodemon to autoreload papiea on code changes (default `false`)
-* `DEBUG_LEVEL` - log level for [morgan](https://github.com/expressjs/morgan) logging (default `common`)
-* `PAPIEA_ADMIN_S2S_KEY` - papiea admin's s2s key
+```
+# Server port (default - 3000)
+server_port: number,
+
+# Public facing papiea address (default - "http://localhost:3000")
+public_addr: string,
+
+# Mongo url (default - "mongodb://mongo:27017")
+mongo_url: string,
+
+# Mongo Db collection name to store papiea entities in (default - "papiea")
+mongo_db: string,
+
+# Papiea Admin S2S key (default - "")
+admin_key: string,
+
+# Papiea debug mode toggle (default - true)
+debug: boolean,
+
+# Default logging level for papiea (default - "info")
+logging_level: string,
+
+# Size of batch of random entities to be added to diff resolution each N seconds (default - 5)
+entity_batch_size: number,
+
+# Deleted watcher persists in database for this amount of seconds (default - 100)
+deleted_watcher_persist_time: number
+
+# Delay for polling entity changes in database in milliseconds (default - 250)
+entity_poll_delay: number
+
+# Delay for observing intent watcher status change in milliseconds (default - 1500)
+intent_resolve_delay: number
+
+# Delay for rediffing watcher entities in milliseconds (default - 3000)
+diff_resolve_delay: number
+```
+
+A set of these variables might be used to override the preceeding config file params.
+General pattern is - PAPIEA_{VARIABLE_NAME_CAPITALIZED}
+
+* `PAPIEA_MONGO_URL`
+* `PAPIEA_PUBLIC_URL`
+* `PAPIEA_LOGGING_LEVEL`
+* `PAPIEA_DEBUG`
+* `PAPIEA_ADMIN_KEY`
+
+Additional env variables:
+
+* `HOT_RELOAD` - use nodemon to autoreload papiea on code changes
+* `PAPIEA_CONFIG_PATH` - path to config file (default - `../../papiea-config.yaml` rootDir is counted from `papiea
+-engine/src/utils`)
+
 
 ## CLJS instructions
 

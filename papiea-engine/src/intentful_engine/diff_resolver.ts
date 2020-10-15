@@ -95,9 +95,9 @@ export class DiffResolver {
         }
     }
 
-    private incrementDiffBackoff(backoff: Backoff, kind: Kind): Backoff {
+    private incrementDiffBackoff(backoff: Backoff, delay: Delay | null | undefined, kind: Kind): Backoff {
         const retries = backoff.retries + 1
-        return this.createDiffBackoff(kind, null, retries)
+        return this.createDiffBackoff(kind, delay, retries)
     }
 
     private async rediff(entry_reference: EntryReference): Promise<RediffResult | null> {
@@ -172,7 +172,7 @@ export class DiffResolver {
                         await this.removeFromWatchlist(entry_reference)
                         continue
                     }
-                    const diff_index = rediff.diffs.findIndex(diff => deepEqual(diff, current_diff!.diff_fields))
+                    const diff_index = rediff.diffs.findIndex(diff => deepEqual(diff.diff_fields, current_diff!.diff_fields))
                     // Diff still exists, we should check the health and retry if not healthy
                     if (diff_index !== -1) {
                         try {
@@ -181,11 +181,11 @@ export class DiffResolver {
                             }
                             this.logger.info(`Starting to retry resolving diff for entity with uuid: ${rediff.metadata!.uuid}`)
                             const delay = await this.launchOperation({diff: rediff.diffs[diff_index], ...rediff})
-                            entries[key][2] = this.createDiffBackoff(rediff.kind, delay)
+                            entries[key][2] = this.incrementDiffBackoff(entries[key][2]!, delay, rediff.kind)
                             continue
                         } catch (e) {
                             this.logger.debug(`Couldn't invoke retry handler for entity with uuid ${rediff.metadata!.uuid}: ${e}`)
-                            entries[key][2] = this.incrementDiffBackoff(entries[key][2]!, rediff.kind)
+                            entries[key][2] = this.incrementDiffBackoff(entries[key][2]!, null, rediff.kind)
                             const error_msg = e?.response?.data?.message
                             await this.onIntentfulHandlerFail.call(entry_reference, error_msg)
                             continue

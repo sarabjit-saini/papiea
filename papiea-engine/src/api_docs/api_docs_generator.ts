@@ -1,6 +1,5 @@
-import { Provider_DB } from "../databases/provider_db_interface"
-import { Kind, Procedural_Signature, Provider } from "papiea-core"
-import { IntentfulBehaviour, FieldBehavior } from "papiea-core";
+import {Provider_DB} from "../databases/provider_db_interface"
+import {FieldBehavior, IntentfulBehaviour, Kind, Procedural_Signature, Provider} from "papiea-core"
 
 export default class ApiDocsGenerator {
     providerDb: Provider_DB;
@@ -450,7 +449,19 @@ export default class ApiDocsGenerator {
         }
     }
 
+    getProcedureSchema(base: string, procedure: Procedural_Signature): [string, string] {
+        const inputSchemaName = `${base}-${Object.keys(procedure.argument)[0]}`
+        const outputSchemaName = `${base}-${Object.keys(procedure.result)[0]}`
+        return [inputSchemaName, outputSchemaName]
+    }
+
+    getKindProcedureSchema = (provider: Provider, kind: Kind, procedure: Procedural_Signature): [string, string] => {
+        const base = `${provider.prefix}-${provider.version}-${kind.name}-${procedure.name}`
+        return this.getProcedureSchema(base, procedure)
+    }
+
     callKindProcedure(provider: Provider, kind: Kind, procedure: Procedural_Signature) {
+        const [input, output] = this.getKindProcedureSchema(provider, kind, procedure)
         const default_description = `Calls a procedure ${ procedure.name }`
         const procedural_def = {
             "description": `${ procedure.description ?? default_description }`,
@@ -464,7 +475,7 @@ export default class ApiDocsGenerator {
                         "schema": {
                             "properties": {
                                 "input": {
-                                    "$ref": `#/components/schemas/${ Object.keys(procedure.argument)[0] }`
+                                    "$ref": `#/components/schemas/${ input }`
                                 }
                             }
                         }
@@ -477,7 +488,7 @@ export default class ApiDocsGenerator {
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": `#/components/schemas/${ Object.keys(procedure.result)[0] }`
+                                "$ref": `#/components/schemas/${ output }`
                             }
                         }
                     }
@@ -489,7 +500,13 @@ export default class ApiDocsGenerator {
         return this.processEmptyValidation(procedural_def, procedure)
     }
 
+    getEntityProcedureSchema = (provider: Provider, kind: Kind, procedure: Procedural_Signature): [string, string] => {
+        const base = `${provider.prefix}-${provider.version}-${kind.name}-${procedure.name}`
+        return this.getProcedureSchema(base, procedure)
+    }
+
     callEntityProcedure(provider: Provider, kind: Kind, procedure: Procedural_Signature) {
+        const [input, output] = this.getEntityProcedureSchema(provider, kind, procedure)
         const default_description = `Calls a procedure ${ procedure.name }`
         const procedural_def = {
             "description": `${ procedure.description ?? default_description }`,
@@ -515,7 +532,7 @@ export default class ApiDocsGenerator {
                         "schema": {
                             "properties": {
                                 "input": {
-                                    "$ref": `#/components/schemas/${ Object.keys(procedure.argument)[0] }`
+                                    "$ref": `#/components/schemas/${ input }`
                                 }
                             }
                         }
@@ -528,7 +545,7 @@ export default class ApiDocsGenerator {
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": `#/components/schemas/${ Object.keys(procedure.result)[0] }`
+                                "$ref": `#/components/schemas/${ output }`
                             }
                         }
                     }
@@ -540,7 +557,13 @@ export default class ApiDocsGenerator {
         return this.processEmptyValidation(procedural_def, procedure)
     }
 
+    getProviderProcedureSchema = (provider: Provider, kind: Kind, procedure: Procedural_Signature): [string, string] => {
+        const base = `${provider.prefix}-${provider.version}-${procedure.name}`
+        return this.getProcedureSchema(base, procedure)
+    }
+
     callProviderProcedure(provider: Provider, procedure: Procedural_Signature) {
+        const [input, output] = this.getProviderProcedureSchema(provider, {} as Kind, procedure)
         const default_description = `Calls a procedure ${ procedure.name }`
         const procedural_def = {
             "description": `${ procedure.description ?? default_description }`,
@@ -554,8 +577,7 @@ export default class ApiDocsGenerator {
                         "schema": {
                             "properties": {
                                 "input": {
-                                    // Shlomi.v TODO: Input and output shapes should be optional. A procedure may have the sig void->void
-                                    "$ref": `#/components/schemas/${ Object.keys(procedure.argument)[0] }`
+                                    "$ref": `#/components/schemas/${ input }`
                                 }
                             }
                         }
@@ -568,8 +590,7 @@ export default class ApiDocsGenerator {
                     "content": {
                         "application/json": {
                             "schema": {
-                                // Shlomi.v TODO: Input and output shapes should be optional. A procedure may have the sig void->void
-                                "$ref": `#/components/schemas/${ Object.keys(procedure.result)[0] }`
+                                "$ref": `#/components/schemas/${ output }`
                             }
                         }
                     }
@@ -665,6 +686,22 @@ export default class ApiDocsGenerator {
             this.removeSchemaField(kindSchema, IntentfulBehaviour.SpecOnly)
         }
         Object.assign(schemas, kindSchema)
+    }
+
+    addProcedureSchema(provider: Provider,
+                       kind: Kind,
+                       proceduralSignature: Procedural_Signature,
+                       schemas: any,
+                       transformNameFn: (provider: Provider, kind: Kind, procedure: Procedural_Signature) => [string, string]) {
+        const inputName = Object.keys(proceduralSignature.argument)[0]
+        const outputName = Object.keys(proceduralSignature.result)[0]
+        const [transformedInputName, transformedOutputName] = transformNameFn(provider, kind, proceduralSignature)
+        const inputSchemaDesc = proceduralSignature.argument[inputName]
+        const outputSchemaDesc = proceduralSignature.result[outputName]
+        proceduralSignature.argument = {[transformedInputName]: inputSchemaDesc}
+        proceduralSignature.result = {[transformedOutputName]: outputSchemaDesc}
+        Object.assign(schemas, proceduralSignature.argument)
+        Object.assign(schemas, proceduralSignature.result)
     }
 
     async getApiDocs(provider: Provider): Promise<any> {
@@ -818,8 +855,7 @@ export default class ApiDocsGenerator {
                     paths[`/services/${ provider.prefix }/${ provider.version }/${ kind.name }/procedure/${ procedure.name }`] = {
                         "post": this.callKindProcedure(provider, kind, procedure)
                     };
-                    Object.assign(schemas, procedure.argument);
-                    Object.assign(schemas, procedure.result);
+                    this.addProcedureSchema(provider, kind, procedure, schemas, this.getKindProcedureSchema)
                 });
             }
             if (kind.entity_procedures) {
@@ -827,8 +863,7 @@ export default class ApiDocsGenerator {
                     paths[`/services/${ provider.prefix }/${ provider.version }/${ kind.name }/{uuid}/procedure/${ procedure.name }`] = {
                         "post": this.callEntityProcedure(provider, kind, procedure)
                     };
-                    Object.assign(schemas, procedure.argument);
-                    Object.assign(schemas, procedure.result);
+                    this.addProcedureSchema(provider, kind, procedure, schemas, this.getEntityProcedureSchema)
                 });
             }
             this.createSchema(schemas, kind, "spec")
@@ -840,8 +875,7 @@ export default class ApiDocsGenerator {
                 paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure.name }`] = {
                     "post": this.callProviderProcedure(provider, procedure)
                 };
-                Object.assign(schemas, procedure.argument);
-                Object.assign(schemas, procedure.result);
+                this.addProcedureSchema(provider, {} as Kind, procedure, schemas, this.getProviderProcedureSchema)
             });
         }
 

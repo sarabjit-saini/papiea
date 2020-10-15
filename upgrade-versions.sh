@@ -60,6 +60,12 @@ else
 fi
 
 make update_typescript_versions UPD_TYPE="patch" BUILD_NUM="'$circle_num'"
+
+# Build typescript packages
+curl -o- -L yarnpkg.com/install.sh | bash
+export PATH="$PATH:/root/.yarn/bin"
+make
+
 node publish-papiea.js
 
 package_version=$(grep -m 1 'New version' temp_version.txt | sed 's/[a-zA-Z :]*//')

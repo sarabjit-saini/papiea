@@ -1,10 +1,12 @@
+import time
 import logging
 from types import TracebackType
 from typing import Any, Optional, List, Type, Callable, AsyncGenerator
 
 from .api import ApiInstance
-from .core import AttributeDict, Entity, EntityReference, EntitySpec, Metadata, Spec
+from .core import AttributeDict, Entity, EntityReference, EntitySpec, IntentfulStatus, IntentWatcher, Metadata, Secret, Spec
 from .python_sdk_exceptions import ApiException, PapieaBaseException
+
 FilterResults = AttributeDict
 
 BATCH_SIZE = 20
@@ -41,6 +43,10 @@ class EntityCRUD(object):
 
     async def get(self, entity_reference: EntityReference) -> Entity:
         return await self.api_instance.get(entity_reference.uuid)
+
+    async def get_all(self) -> List[Entity]:
+        res = await self.api_instance.get("")
+        return res.results
 
     async def get_all(self) -> List[Entity]:
         res = await self.api_instance.get("")
@@ -98,6 +104,62 @@ class EntityCRUD(object):
     async def invoke_kind_procedure(self, procedure_name: str, input_: Any) -> Any:
         payload = {"input": input_}
         return await self.api_instance.post(f"procedure/{procedure_name}", payload)
+
+class IntentWatcherClient(object):
+    def __init__(
+        self,
+        papiea_url: str,
+        s2skey: Secret = None,
+        logger: logging.Logger = logging.getLogger(__name__)
+    ):
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        if s2skey is not None:
+            headers["Authorization"] = f"Bearer {s2skey}"
+        self.api_instance = ApiInstance(
+            f"{papiea_url}/services/intent_watcher", headers=headers, logger=logger
+        )
+
+        self.logger = logger
+
+    async def __aenter__(self) -> "IntentWatcherApi":
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
+        await self.api_instance.close()
+
+    async def get_intent_watcher(self, id: str) -> IntentWatcher:
+        return await self.api_instance.get(id)
+
+    async def list_intent_watcher(self) -> List[IntentWatcher]:
+        res = await self.api_instance.get("")
+        return res.results
+
+    # filter_intent_watcher(AttributeDict(status=IntentfulStatus.Pending))
+    async def filter_intent_watcher(self, filter_obj: Any) -> List[IntentWatcher]:
+        res = await self.api_instance.post("filter", filter_obj)
+        return res.results
+
+
+    async def wait_for_watcher_status(self, watcher_ref: AttributeDict, watcher_status: IntentfulStatus, timeout_secs: float = 50, delay_millis: float = 500) -> bool:
+        start_time = time.time()
+        delay_secs = delay_millis/1000
+        while True:
+            watcher = await self.get_intent_watcher(watcher_ref.uuid)
+            if watcher.status == watcher_status:
+                return True
+            end_time = time.time()
+            time_elapsed = end_time - start_time
+            if time_elapsed > timeout_secs:
+                raise Exception("Timeout waiting for intent watcher status")
+            time.sleep(delay_secs)
 
 class ProviderClient(object):
     def __init__(

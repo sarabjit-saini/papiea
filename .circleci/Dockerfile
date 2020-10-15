@@ -40,6 +40,11 @@ RUN cd /code \
     && apt-get install nodejs -y \
     && apt-get install python3-pip -y
 
+# Install python3.8
+RUN cd /code \
+    && apt-get update \
+    && apt-get install -y python3.8 python3-pip python3.8-dev
+
 # Install yarn
 RUN curl -o- -L yarnpkg.com/install.sh | bash
 ENV PATH="${PATH}:/root/.yarn/bin"
