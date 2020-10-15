@@ -15,5 +15,5 @@
       ]
     }
   },
-  "exclude": ["node_modules", "**/__tests__/*", "build", "**/__benchmarks__/*"]
+  "exclude": ["node_modules", "**/__tests__/*", "**/__benchmarks__/*", "build"]
 }

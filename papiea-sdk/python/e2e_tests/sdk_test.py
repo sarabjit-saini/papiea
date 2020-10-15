@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import pytest
 import time
 
@@ -5,7 +7,7 @@ import e2e_tests as papiea_test
 import e2e_tests.provider_setup as provider
 import e2e_tests.utils as test_utils
 
-from papiea.core import AttributeDict, Spec
+from papiea.core import AttributeDict, IntentfulStatus, Spec
 
 # Includes all the entity ops related tests
 class TestEntityOperations:
@@ -912,7 +914,7 @@ class TestEntityOperations:
         papiea_test.logger.debug("Running test to change object content and validate intent resolver")
 
         try:
-            server = await provider.setup_and_register_sdk()
+            sdk = await provider.setup_and_register_sdk()
         except Exception as ex:
             papiea_test.logger.debug("Failed to setup/register sdk : " + str(ex))
             return
@@ -947,20 +949,23 @@ class TestEntityOperations:
                     spec = Spec(
                         content=obj_content
                     )
-                    watcher_ref = await object_entity_client.update(b1_object1_entity.metadata, spec)
-                    op_status = await test_utils.wait_for_diff_resolver(watcher_ref.watcher)
-                    if op_status == True:
-                        b1_object1_entity = await object_entity_client.get(object_ref)
 
-                        assert b1_object1_entity.spec.content == obj_content
-                        assert b1_object1_entity.status.content == obj_content
-                        assert b1_object1_entity.status.size == len(obj_content)
-                        assert len(b1_object1_entity.status.references) == 1
-                        assert b1_object1_entity.status.references[0].bucket_name == bucket1_name
-                        assert b1_object1_entity.status.references[0].object_name == object1_name
-                        assert b1_object1_entity.status.references[0].bucket_reference.uuid == bucket1_entity.metadata.uuid
-                    else:
-                        papiea_test.logger.debug("Intent resolver operation failed")
-                        assert False
+                    callback_invoked = False
+                    def cb_function(fut: asyncio.Future):
+                        nonlocal callback_invoked
+                        callback_invoked = True
+
+                    watcher_ref = await object_entity_client.update(b1_object1_entity.metadata, spec)
+
+                    watcher_status = IntentfulStatus.Completed_Successfully
+                    task = asyncio.create_task(sdk.intent_watcher.wait_for_watcher_status(watcher_ref.watcher, watcher_status, 50))
+                    task.add_done_callback(cb_function)
+
+                    await asyncio.sleep(10)
+
+                    b1_object1_entity = await object_entity_client.get(object_ref)
+
+                    assert b1_object1_entity.spec.content == obj_content
+                    assert callback_invoked == True
         finally:
-            await server.close()
+            await sdk.server.close()

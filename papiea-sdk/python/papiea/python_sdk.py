@@ -5,6 +5,7 @@ from typing import Any, Callable, List, NoReturn, Optional, Type
 from aiohttp import web
 
 from .api import ApiInstance
+from .client import IntentWatcherClient
 from .core import (
     DataDescription,
     Entity,
@@ -21,7 +22,7 @@ from .core import (
     Version, ProcedureDescription,
 )
 from .python_sdk_context import IntentfulCtx, ProceduralCtx
-from .python_sdk_exceptions import InvocationError, SecurityApiError
+from .python_sdk_exceptions import ApiException, InvocationError, PapieaBaseException, SecurityApiError
 from .utils import json_loads_attrs, validate_error_codes
 
 
@@ -151,6 +152,7 @@ class ProviderSdk(object):
         self.meta_ext = {}
         self.allow_extra_props = allow_extra_props
         self._security_api = SecurityApi(self, s2skey)
+        self._intent_watcher_client = IntentWatcherClient(papiea_url, s2skey, logger)
         self._provider_api = ApiInstance(
             self.provider_url,
             headers={
@@ -369,6 +371,9 @@ class ProviderSdk(object):
     def s2s_key(self) -> Secret:
         return self._s2skey
 
+    @property
+    def intent_watcher(self) -> IntentWatcherClient:
+        return self._intent_watcher_client
 
 class KindBuilder(object):
     def __init__(self, kind: Kind, provider: ProviderSdk, allow_extra_props: bool):

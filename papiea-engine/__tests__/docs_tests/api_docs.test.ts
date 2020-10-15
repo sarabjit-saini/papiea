@@ -31,27 +31,38 @@ const api = axios.create({
     timeout: 1000,
     headers: { 'Content-Type': 'application/json' }
 });
+
+type prefix = string
 class Provider_DB_Mock implements Provider_DB {
-    provider: Provider;
+    provider: Provider
+    providerMap: Map<prefix, Provider> = new Map()
 
     constructor(provider?: Provider) {
         if (provider === undefined) {
-            this.provider = new ProviderBuilder().withVersion("0.1.0").withKinds().build();
+            const provider = new ProviderBuilder().withVersion("0.1.0").withKinds().build();
+            this.provider = provider
+            this.providerMap.set(provider.prefix, provider)
         } else {
-            this.provider = provider;
+            this.provider = provider
+            this.providerMap.set(provider.prefix, provider)
         }
     }
 
     async save_provider(provider: Provider): Promise<void> {
-
+        this.providerMap.set(provider.prefix, provider)
     }
 
     async get_provider(provider_prefix: string, version?: Version): Promise<Provider> {
-        return this.provider;
+        return this.providerMap.get(provider_prefix)!;
     }
 
     async list_providers(): Promise<Provider[]> {
-        return [this.provider];
+        const providers = []
+        // @ts-ignore
+        for (const provider of this.providerMap.values()) {
+            providers.push(provider)
+        }
+        return providers
     }
 
     async delete_provider(provider_prefix: string, version: Version): Promise<void> {
@@ -207,13 +218,13 @@ describe("API docs test entity", () => {
             .content["application/json"]
             .schema
             .properties
-            .input['$ref']).toEqual(`#/components/schemas/SumInput`);
+            .input['$ref']).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidation-SumInput`);
 
         expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id }`]
             .post
             .responses["200"]
             .content["application/json"]
-            .schema["$ref"]).toEqual(`#/components/schemas/SumOutput`);
+            .schema["$ref"]).toEqual(`#/components/schemas/provider_with_validation_scheme-0.1.0-computeSumWithValidation-SumOutput`);
 
         expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/procedure/${ procedure_id }`]
             .post
@@ -381,5 +392,147 @@ describe("API docs test entity", () => {
             .responses["200"]
             .content["application/json"]
             .schema["$ref"]).toEqual(`#/components/schemas/Nothing`);
+    });
+
+    test("Providers with same procedure names and different spec should work correctly", async () => {
+        expect.hasAssertions();
+        const firstDescription = {
+            Input: {
+                type: "object",
+                properties: {
+                    x: {
+                        type: "string"
+                    },
+                    y: {
+                        type: "string"
+                    }
+                }
+            }
+        }
+        const firstProvider: Provider = new ProviderBuilder("provider_same_kind_1")
+            .withVersion("0.1.0")
+            .withKinds([new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(firstDescription).build()])
+            .build();
+
+        const secondDescription = {
+            Input: {
+                type: "object",
+                properties: {
+                    a: {
+                        type: "string"
+                    },
+                    b: {
+                        type: "string"
+                    }
+                }
+            }
+        }
+        const secondProvider: Provider = new ProviderBuilder("provider_same_kind_1")
+            .withVersion("0.1.0")
+            .withKinds([new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(secondDescription).build()])
+            .build();
+        const providerDbMock = new Provider_DB_Mock(firstProvider);
+        await providerDbMock.save_provider(secondProvider)
+        const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+        const firstApiDoc = await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+        expect(firstApiDoc.components.schemas["Input"]).toEqual(
+            {
+                type: "object",
+                "x-papiea-entity": "spec-only",
+                properties: {
+                    x: {
+                        type: "string"
+                    },
+                    y: {
+                        type: "string"
+                    }
+                }
+            }
+        )
+        const secondApiDoc = await apiDocsGenerator.getApiDocs(await providerDbMock.get_provider(secondProvider.prefix))
+        expect(secondApiDoc.components.schemas["Input"]).toEqual(
+            {
+                type: "object",
+                "x-papiea-entity": "spec-only",
+                properties: {
+                    a: {
+                        type: "string"
+                    },
+                    b: {
+                        type: "string"
+                    }
+                }
+            }
+        )
+    });
+
+    test("Provider kinds with same description names should be different", async () => {
+        expect.hasAssertions();
+        const firstDescription = {
+            InputOne: {
+                type: "object",
+                properties: {
+                    x: {
+                        type: "string"
+                    },
+                    y: {
+                        type: "string"
+                    }
+                }
+            }
+        }
+        const secondDescription = {
+            InputTwo: {
+                type: "object",
+                properties: {
+                    a: {
+                        type: "string"
+                    },
+                    b: {
+                        type: "string"
+                    }
+                }
+            }
+        }
+        const provider: Provider = new ProviderBuilder("provider_same_kind_1")
+            .withVersion("0.1.0")
+            .withKinds(
+                [
+                    new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(firstDescription).build(),
+                    new KindBuilder(IntentfulBehaviour.SpecOnly).withDescription(secondDescription).build(),
+                ]
+            )
+            .build();
+        const firstProcDesc: Procedural_Signature = {
+            name: "Desc",
+            argument: firstDescription,
+            result: firstDescription,
+            execution_strategy: Procedural_Execution_Strategy.Halt_Intentful,
+            procedure_callback: "",
+            base_callback: ""
+        };
+        const secondProcDesc: Procedural_Signature = {
+            name: "Desc",
+            argument: secondDescription,
+            result: secondDescription,
+            execution_strategy: Procedural_Execution_Strategy.Halt_Intentful,
+            procedure_callback: "",
+            base_callback: ""
+        };
+        provider.kinds[0].kind_procedures["Desc"] = firstProcDesc
+        provider.kinds[1].kind_procedures["Desc"] = JSON.parse(JSON.stringify(firstProcDesc))
+        const providerDbMock = new Provider_DB_Mock(provider);
+        const apiDocsGenerator = new ApiDocsGenerator(providerDbMock);
+        const apiDoc = await apiDocsGenerator.getApiDocs(providerDbMock.provider);
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/${provider.kinds[0].name}/procedure/Desc`]
+                   .post
+                   .responses["200"]
+                   .content["application/json"]
+                   .schema["$ref"]).toEqual(`#/components/schemas/provider_same_kind_1-0.1.0-InputOne-Desc-InputOne`);
+        expect(apiDoc.paths[`/services/${ provider.prefix }/${ provider.version }/${provider.kinds[1].name}/procedure/Desc`]
+                   .post
+                   .responses["200"]
+                   .content["application/json"]
+                   .schema["$ref"]).toEqual(`#/components/schemas/provider_same_kind_1-0.1.0-InputTwo-Desc-InputOne`);
     });
 });

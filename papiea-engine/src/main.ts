@@ -22,33 +22,19 @@ import { SessionKeyAPI, SessionKeyUserAuthInfoExtractor } from "./auth/session_k
 import { IntentfulContext } from "./intentful_core/intentful_context"
 import { AuditLogger } from "./audit_logging"
 import { BasicDiffer } from "./intentful_core/differ_impl"
+import { getConfig } from "./utils/arg_parser"
 const cookieParser = require('cookie-parser');
 
-
-declare var process: {
-    env: {
-        SERVER_PORT: string,
-        MONGO_DB: string,
-        MONGO_URL: string,
-        PAPIEA_PUBLIC_URL: string,
-        DEBUG_LEVEL: string,
-        PAPIEA_ADMIN_S2S_KEY: string,
-        LOGGING_LEVEL: string
-        PAPIEA_DEBUG: string,
-        DELETED_WATCHER_PERSIST_SECONDS: string
-    },
-    title: string;
-};
-process.title = "papiea";
-const serverPort = parseInt(process.env.SERVER_PORT || "3000");
-const publicAddr: string = process.env.PAPIEA_PUBLIC_URL || "http://localhost:3000";
-const oauth2RedirectUri: string = publicAddr + "/provider/auth/callback";
-const mongoUrl = process.env.MONGO_URL || 'mongodb://mongo:27017';
-const mongoDb = process.env.MONGO_DB || 'papiea';
-const adminKey = process.env.PAPIEA_ADMIN_S2S_KEY || '';
-const loggingLevel = logLevelFromString(process.env.LOGGING_LEVEL) ?? 'info';
-const papieaDebug = process.env.PAPIEA_DEBUG === "true"
-
+process.title = "papiea"
+const config = getConfig()
+const serverPort = config.server_port
+const publicAddr = config.public_addr
+const oauth2RedirectUri: string = publicAddr + "/provider/auth/callback"
+const mongoUrl = config.mongo_url
+const mongoDb = config.mongo_db
+const adminKey = config.admin_key
+const loggingLevel = logLevelFromString(config.logging_level)
+const papieaDebug = config.debug
 
 async function setUpApplication(): Promise<express.Express> {
     const logger = LoggerFactory.makeLogger({level: loggingLevel});
