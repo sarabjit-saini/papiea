@@ -10,12 +10,12 @@ run-tests: run-papiea
 	docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/typescript && npm test'
 .PHONY: run-tests
 
-run-python-tests: run-papiea
+run-python-e2e-tests: run-papiea
 	cd ./papiea-engine; \
 	docker-compose exec papiea-engine yarn run test; \
-	docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/python/tests && \
+	docker-compose exec papiea-engine bash -c 'cd /code/papiea-sdk/python/e2e_tests && \
 	python3.8 -m pip install -r requirements.txt && \
-	python3.8 -m pytest -s'
+	python3.8 -m pytest -s --disable-pytest-warnings'
 .PHONY: run-python-tests
 
 run-benchmark: build_main

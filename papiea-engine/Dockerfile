@@ -13,10 +13,8 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y gnupg \
     && curl -sL https://deb.nodesource.com/setup_12.x | bash - \
     && apt-get install -y nodejs \
-    && apt install software-properties-common -y \
-    && add-apt-repository ppa:deadsnakes/ppa -y \
-    && apt install python3.8 -y \
-    && apt install python3-venv -y \
+    # For python3.8
+    && apt-get install -y python3.8 python3-pip python3.8-dev \
     # Cleanup
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LC_CTYPE=en_US.UTF-8 LANGUAGE=en_US:en
